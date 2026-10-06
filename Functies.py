@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import re
 
 
 def bestanden_inlezen(titel, uitleg, key):
@@ -436,22 +437,21 @@ def missende_waarden(data):
 
             st.dataframe(rijen_budget_missend)
 
-
 def maak_naam_match(naam):
     if pd.isna(naam):
         return ""
 
-    naam = str(naam).strip().lower()
+    naam = str(naam).lower()
+    naam = naam.replace("\xa0", " ").strip()
     naam = naam.lstrip(";").strip()
 
-    # Alles na een - verwijderen
-    naam = naam.split("-")[0].strip()
+    # Alles na komma of streepje verwijderen
+    naam = re.split(r"[,–—-]", naam)[0]
 
-    # Alles na een , verwijderen
-    naam = naam.split(",")[0].strip()
+    # Dubbele spaties verwijderen
+    naam = " ".join(naam.split())
 
     return naam
-
 
 def bereken_projectkosten(projecturen, employees):
     data = projecturen.copy()
@@ -469,21 +469,20 @@ def bereken_projectkosten(projecturen, employees):
     data = data.dropna(subset=["Project", "Week", "Consultant"])
     data["Week"] = data["Week"].astype(int)
 
+    # Namen in beide bestanden schoonmaken
+    data["naam_match"] = data["Consultant"].apply(maak_naam_match)
+    werknemers["naam_match"] = werknemers["Full Name"].apply(maak_naam_match)
+
     # Uren per project, week en persoon
     uren_per_persoon = (
         data.groupby(
-            ["Project", "Week", "Consultant"],
+            ["Project", "Week", "naam_match"],
             as_index=False
-        )["Hours"].sum()
-    )
-
-    # Namen gelijk maken
-    uren_per_persoon["naam_match"] = (
-        uren_per_persoon["Consultant"].apply(maak_naam_match)
-    )
-
-    werknemers["naam_match"] = (
-        werknemers["Full Name"].apply(maak_naam_match)
+        )
+        .agg(
+            Consultant=("Consultant", "first"),
+            Hours=("Hours", "sum")
+        )
     )
 
     # Werknemersinformatie koppelen
@@ -504,7 +503,7 @@ def bereken_projectkosten(projecturen, employees):
         how="left"
     )
 
-    # Land bepalen op basis van Residence
+    # Land bepalen
     def bepaal_land(residence):
         if pd.isna(residence):
             return pd.NA
@@ -541,3 +540,5 @@ def bereken_projectkosten(projecturen, employees):
     ] = "Residence ontbreekt"
 
     return uren_per_persoon
+
+

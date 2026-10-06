@@ -57,6 +57,7 @@ with tab_koppeling:
             kosten_data[
                 [
                     "Consultant",
+                    "naam_match",
                     "Full Name",
                     "Residence",
                     "Gekozen land",
@@ -67,8 +68,10 @@ with tab_koppeling:
             .drop_duplicates()
             .rename(columns={
                 "Consultant": "Persoon projecturen",
+                "naam_match": "Naam voor koppeling",
                 "Full Name": "Gekoppelde werknemer"
             })
+            .sort_values("Persoon projecturen")
         )
 
         problemen = controle_koppeling[
