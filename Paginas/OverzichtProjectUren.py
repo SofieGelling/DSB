@@ -9,6 +9,7 @@ if "projecturen_schoon" not in st.session_state:
 
 projecturen = st.session_state["projecturen_schoon"].copy()
 
+# Uren en weken
 projecturen["Hours"] = pd.to_numeric(
     projecturen["Hours"], errors="coerce"
 ).fillna(0)
@@ -26,11 +27,33 @@ projecturen["Week"] = pd.to_numeric(
 projecturen = projecturen.dropna(subset=["Week"])
 projecturen["Week"] = projecturen["Week"].astype(int)
 
+# Projectbudget bepalen
+projecturen["Project budget"] = pd.NA
+
+if "Budget_NL€" in projecturen.columns:
+    projecturen["Project budget"] = projecturen["Budget_NL€"]
+
+if "Budget_BE€" in projecturen.columns:
+    projecturen["Project budget"] = (
+        projecturen["Project budget"]
+        .fillna(projecturen["Budget_BE€"])
+    )
+
+projecturen["Project budget"] = pd.to_numeric(
+    projecturen["Project budget"], errors="coerce"
+)
+
 uren_per_week = (
     projecturen
     .groupby(["Project", "Week"])["Hours"]
     .sum()
     .reset_index()
+)
+
+budget_per_project = (
+    projecturen
+    .groupby("Project")["Project budget"]
+    .max()
 )
 
 laatste_week = int(projecturen["Week"].max())
@@ -44,7 +67,9 @@ for project in projecten:
         uren_per_week["Project"] == project
     ]
 
-    actieve_weken = data_project[data_project["Hours"] > 0]
+    actieve_weken = data_project[
+        data_project["Hours"] > 0
+    ]
 
     if actieve_weken.empty:
         startweek = None
@@ -59,6 +84,7 @@ for project in projecten:
 
     rij = {
         "Project": project,
+        "Project budget": budget_per_project.get(project),
         "Start": startweek if startweek is not None else "-",
         "Laatste": laatste_actieve_week if laatste_actieve_week is not None else "-"
     }
@@ -72,85 +98,54 @@ for project in projecten:
 
         else:
             uren = uren_dict.get(week, 0)
-
-            if uren == 0:
-                waarde = "0"
-            else:
-                waarde = f"{uren:.0f}"
+            waarde = "0" if uren == 0 else f"{uren:.0f}"
 
         rij[str(week)] = waarde
 
     rijen.append(rij)
 
 overzicht = pd.DataFrame(rijen)
-
 week_kolommen = [str(week) for week in weken]
 
+# Kleuren uren
 def kleur_cel(waarde):
-
-    # Nog niet gestart
     if waarde == "NS":
-        return (
-            "background-color: #f2f2f2; "
-            "color: #f2f2f2;"
-        )
+        return "background-color: #f2f2f2; color: #f2f2f2"
 
-    # Na laatste actieve week
     if waarde == "NA":
-        return (
-            "background-color: #dddddd; "
-            "color: #dddddd;"
-        )
+        return "background-color: #dddddd; color: #dddddd"
 
     uren = float(waarde)
 
-    # Geen uren
     if uren == 0:
-        return (
-            "background-color: #ffffff; "
-            "color: #666666; "
-            "font-weight: bold;"
-        )
-
-    # 1 - 30 uur
+        return "background-color: #ffffff; color: #666666; font-weight: bold"
     elif uren <= 30:
-        return (
-            "background-color: #eaf4ff; "
-            "color: #24435c;"
-        )
-
-    # 31 - 50 uur
+        return "background-color: #eaf4ff; color: #24435c"
     elif uren <= 50:
-        return (
-            "background-color: #c9e3fa; "
-            "color: #183b56;"
-        )
-
-    # 51 - 70 uur
+        return "background-color: #c9e3fa; color: #183b56"
     elif uren <= 70:
-        return (
-            "background-color: #91c4ed; "
-            "color: #123653;"
-        )
-
-    # 71 - 90 uur
+        return "background-color: #91c4ed; color: #123653"
     elif uren <= 90:
-        return (
-            "background-color: #559bd0; "
-            "color: white;"
-        )
-
-    # Meer dan 90 uur
+        return "background-color: #559bd0; color: white"
     else:
-        return (
-            "background-color: #21689d; "
-            "color: white; "
-            "font-weight: bold;"
-        )
+        return "background-color: #21689d; color: white; font-weight: bold"
+
+# Budget 0 rood maken
+def kleur_budget(waarde):
+    if pd.isna(waarde):
+        return ""
+    if waarde == 0:
+        return "background-color: #ffd6d6; color: #a40000; font-weight: bold"
+    return ""
 
 stijl = (
     overzicht.style
     .map(kleur_cel, subset=week_kolommen)
+    .map(kleur_budget, subset=["Project budget"])
+    .format(
+        {"Project budget": lambda x: "-" if pd.isna(x) else f"€ {x:,.0f}"},
+        thousands="."
+    )
     .set_properties(
         subset=week_kolommen,
         **{
@@ -161,25 +156,25 @@ stijl = (
     )
 )
 
-# Smalle weekkolommen
 kolom_config = {
-    "Project": st.column_config.TextColumn("Project", width=130),
-    "Start": st.column_config.TextColumn("Start", width=55),
+    "Project": st.column_config.TextColumn("Project", width=120),
+    "Project budget": st.column_config.TextColumn("Budget", width=90),
+    "Start": st.column_config.TextColumn("Start", width=50),
     "Laatste": st.column_config.TextColumn("Laatste", width=55)
 }
 
 for week in week_kolommen:
     kolom_config[week] = st.column_config.TextColumn(
         week,
-        width=38
+        width=35
     )
 
 st.caption(
     "Lichtgrijs = nog niet gestart  ·  "
     "Wit = 0 uur  ·  "
-    "Blauw = uren geboekt  ·  "
     "Donkerder blauw = meer uren  ·  "
-    "Grijs = na laatste actieve week"
+    "Grijs = na laatste actieve week  ·  "
+    "Rood budget = projectbudget €0"
 )
 
 st.dataframe(
@@ -187,6 +182,6 @@ st.dataframe(
     column_config=kolom_config,
     hide_index=True,
     use_container_width=True,
-    height=550,
+    height=600,
     row_height=28
 )
