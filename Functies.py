@@ -461,7 +461,7 @@ def bereken_projectkosten(projecturen, employees):
         )["Hours"].sum()
     )
 
-    # Namen geschikt maken voor koppeling
+    # Namen gelijk maken
     uren_per_persoon["naam_match"] = (
         uren_per_persoon["Consultant"]
         .astype(str)
@@ -476,7 +476,7 @@ def bereken_projectkosten(projecturen, employees):
         .str.lower()
     )
 
-    # Werknemersgegevens toevoegen
+    # Werknemersinformatie koppelen
     employee_info = werknemers[
         [
             "naam_match",
@@ -494,7 +494,7 @@ def bereken_projectkosten(projecturen, employees):
         how="left"
     )
 
-    # Residence omzetten naar land
+    # Land bepalen op basis van Residence
     def bepaal_land(residence):
         if pd.isna(residence):
             return pd.NA
@@ -516,7 +516,7 @@ def bereken_projectkosten(projecturen, employees):
         uren_per_persoon["Residence"].apply(bepaal_land)
     )
 
-    # Eerste controles
+    # Controle
     uren_per_persoon["Controle"] = "OK"
 
     uren_per_persoon.loc[
@@ -531,9 +531,3 @@ def bereken_projectkosten(projecturen, employees):
     ] = "Residence ontbreekt"
 
     return uren_per_persoon
-
-
-
-
-
-
