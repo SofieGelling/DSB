@@ -9,7 +9,7 @@ if "projecturen_schoon" not in st.session_state:
 
 projecturen = st.session_state["projecturen_schoon"].copy()
 
-# Uren en weken voorbereiden
+# Data voorbereiden
 projecturen["Hours"] = pd.to_numeric(projecturen["Hours"], errors="coerce").fillna(0)
 projecturen["Week"] = pd.to_numeric(
     projecturen["Week"].astype(str).str.extract(r"(\d+)")[0],
@@ -20,15 +20,14 @@ projecturen["Week"] = projecturen["Week"].astype(int)
 
 uren_per_week = (
     projecturen.groupby(["Project", "Week"])["Hours"]
-    .sum()
-    .reset_index()
+    .sum().reset_index()
 )
 
 weken = range(1, int(projecturen["Week"].max()) + 1)
 week_kolommen = [str(w) for w in weken]
 projecten = sorted(projecturen["Project"].dropna().unique())
 
-# Projectbudget zoeken
+# Budgetdata zoeken
 project_budget = None
 
 for waarde in st.session_state.values():
@@ -59,8 +58,7 @@ if project_budget is not None:
     )
 
     budgetten = (
-        project_budget
-        .drop_duplicates("project_match")
+        project_budget.drop_duplicates("project_match")
         .set_index("project_match")["Budget"]
         .to_dict()
     )
@@ -80,8 +78,9 @@ def maak_overzicht(status=False, met_budget=False):
         rij = {"Project": project}
 
         if met_budget:
-            key = str(project).strip().lower()
-            rij["Budget"] = budgetten.get(key, pd.NA)
+            rij["Budget"] = budgetten.get(
+                str(project).strip().lower(), pd.NA
+            )
 
         rij["Start"] = start if start is not None else "-"
         rij["Laatste"] = laatste if laatste is not None else "-"
@@ -129,6 +128,7 @@ def kleur_status(waarde):
         return "background-color:#c9e3fa;color:#c9e3fa"
     if waarde == "0":
         return "background-color:white;color:white"
+
     return "background-color:#e5e5e5;color:#e5e5e5"
 
 
@@ -144,7 +144,65 @@ def budget_format(waarde):
     return f"€ {waarde:,.0f}".replace(",", ".")
 
 
-def toon_tabel(overzicht, stijl, key, budget=False):
+def selectie_ophalen(key):
+    try:
+        return st.session_state[key]["selection"]["rows"]
+    except:
+        return []
+
+
+def toon_tabel(overzicht, key, soort="uren", budget=False):
+    filter_key = f"{key}_filter"
+    filter_projecten = st.session_state.get(filter_key, [])
+
+    # Bij vergelijken alleen geselecteerde projecten tonen
+    if filter_projecten:
+        weergave = overzicht[
+            overzicht["Project"].isin(filter_projecten)
+        ].reset_index(drop=True)
+        widget_key = f"{key}_vergelijk"
+    else:
+        weergave = overzicht.reset_index(drop=True)
+        widget_key = f"{key}_alles"
+
+    geselecteerde_rijen = selectie_ophalen(widget_key)
+
+    # Styling
+    if soort == "uren":
+        stijl = weergave.style.map(kleur_uren, subset=week_kolommen)
+    else:
+        stijl = (
+            weergave.style
+            .map(kleur_status, subset=week_kolommen)
+            .map(kleur_budget, subset=["Budget"])
+            .format({"Budget": budget_format})
+        )
+
+    stijl = stijl.set_properties(
+        subset=week_kolommen,
+        **{
+            "font-size": "9px",
+            "text-align": "center",
+            "padding": "1px"
+        }
+    )
+
+    # Blauwe rand rond geselecteerde rij
+    def markeer_rij(rij):
+        if rij.name not in geselecteerde_rijen:
+            return [""] * len(rij)
+
+        opmaak = [
+            "border-top:2px solid #2878b5;"
+            "border-bottom:2px solid #2878b5;"
+        ] * len(rij)
+
+        opmaak[0] += "border-left:2px solid #2878b5;"
+        opmaak[-1] += "border-right:2px solid #2878b5;"
+        return opmaak
+
+    stijl = stijl.apply(markeer_rij, axis=1)
+
     config = {
         "Project": st.column_config.TextColumn("Project", width=120),
         "Start": st.column_config.TextColumn("Start", width=50),
@@ -157,6 +215,9 @@ def toon_tabel(overzicht, stijl, key, budget=False):
     for week in week_kolommen:
         config[week] = st.column_config.TextColumn(week, width=33)
 
+    # Deze container staat boven de tabel
+    acties = st.container()
+
     selectie = st.dataframe(
         stijl,
         column_config=config,
@@ -165,54 +226,103 @@ def toon_tabel(overzicht, stijl, key, budget=False):
         height=600,
         row_height=28,
         on_select="rerun",
-        selection_mode="single-row",
-        key=key
+        selection_mode="multi-row",
+        key=widget_key
     )
 
-    if selectie.selection.rows:
-        rij = selectie.selection.rows[0]
-        st.session_state["geselecteerd_project"] = overzicht.iloc[rij]["Project"]
-        st.switch_page("Paginas/OverzichtProjectBezetting.py")
+    gekozen_rijen = selectie.selection.rows
+
+    gekozen_projecten = (
+        weergave.iloc[gekozen_rijen]["Project"].tolist()
+        if gekozen_rijen else []
+    )
+
+    # Opties boven tabel
+    with acties:
+        if filter_projecten:
+            col1, col2 = st.columns([4, 1])
+
+            with col1:
+                st.info(
+                    f"Je vergelijkt {len(filter_projecten)} projecten."
+                )
+
+            with col2:
+                if st.button("Toon alles", key=f"{key}_alles_knop"):
+                    st.session_state[filter_key] = []
+                    st.rerun()
+
+        if gekozen_projecten:
+            col1, col2, col3 = st.columns([2, 1, 1])
+
+            with col1:
+                project_keuze = st.selectbox(
+                    "Project bekijken",
+                    gekozen_projecten,
+                    key=f"{key}_project_keuze"
+                )
+
+            with col2:
+                st.write("")
+                st.write("")
+
+                if st.button("Bekijk project", key=f"{key}_bekijk"):
+                    st.session_state["geselecteerd_project"] = project_keuze
+                    st.switch_page(
+                        "Paginas/OverzichtProjectBezetting.py"
+                    )
+
+            with col3:
+                st.write("")
+                st.write("")
+
+                if len(gekozen_projecten) > 1:
+                    if st.button(
+                        "Vergelijk selectie",
+                        key=f"{key}_vergelijk_knop"
+                    ):
+                        st.session_state[filter_key] = gekozen_projecten
+                        st.rerun()
 
 
-tab_uren, tab_budget = st.tabs(["Projecturen", "Projectbudget"])
+tab_uren, tab_budget = st.tabs([
+    "Projecturen",
+    "Projectbudget"
+])
 
 with tab_uren:
     overzicht = maak_overzicht()
 
-    stijl = (
-        overzicht.style
-        .map(kleur_uren, subset=week_kolommen)
-        .set_properties(
-            subset=week_kolommen,
-            **{"font-size": "9px", "text-align": "center", "padding": "1px"}
-        )
-    )
-
     st.caption(
         "Per project zie je het aantal geboekte uren per week. "
-        "Wit betekent 0 uur; hoe donkerder blauw, hoe meer uren zijn geboekt."
+        "Wit betekent 0 uur; hoe donkerder blauw, hoe meer uren zijn geboekt. "
+        "Selecteer één of meerdere projecten om ze te bekijken of te vergelijken."
     )
 
-    toon_tabel(overzicht, stijl, "tabel_projecturen")
+    toon_tabel(
+        overzicht,
+        "tabel_projecturen",
+        soort="uren"
+    )
 
 
 with tab_budget:
-    overzicht = maak_overzicht(status=True, met_budget=True)
-
-    stijl = (
-        overzicht.style
-        .map(kleur_status, subset=week_kolommen)
-        .map(kleur_budget, subset=["Budget"])
-        .format({"Budget": budget_format})
+    overzicht = maak_overzicht(
+        status=True,
+        met_budget=True
     )
 
     st.caption(
         "Dit overzicht toont het projectbudget en in welke weken aan het project is gewerkt. "
-        "Lichtblauw betekent dat er uren zijn geboekt, wit betekent 0 uur binnen de actieve "
-        "projectperiode en grijs ligt buiten de actieve periode. "
-        "Een ontbrekend budget betekent dat het project niet voorkomt in het projecten- en "
-        "budgetoverzicht. Een budget van €0 betekent dat het budget nog niet is vastgesteld."
+        "Lichtblauw betekent dat er uren zijn geboekt, wit betekent 0 uur en grijs ligt "
+        "buiten de actieve projectperiode. Een ontbrekend budget betekent dat het project "
+        "niet voorkomt in het projecten- en budgetoverzicht. Een budget van €0 betekent "
+        "dat het budget nog niet is vastgesteld."
     )
 
-    toon_tabel(overzicht, stijl, "tabel_projectbudget", budget=True)
+    toon_tabel(
+        overzicht,
+        "tabel_projectbudget",
+        soort="budget",
+        budget=True
+    )
