@@ -68,10 +68,22 @@ data["Grade"] = (
 
 data["Full Name"] = data["Full Name"].fillna(data["Consultant"])
 
-# Project kiezen
+projecten = sorted(data["Project"].dropna().unique())
+
+gekozen_project = st.session_state.pop(
+    "geselecteerd_project",
+    None
+)
+
+if gekozen_project in projecten:
+    index = projecten.index(gekozen_project)
+else:
+    index = 0
+
 project = st.selectbox(
     "Kies een project",
-    sorted(data["Project"].dropna().unique())
+    projecten,
+    index=index
 )
 
 project_data = data[data["Project"] == project].copy()

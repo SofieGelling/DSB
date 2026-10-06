@@ -233,18 +233,28 @@ for week in week_kolommen:
     )
 
 st.caption(
-    "Lichtgrijs = nog niet gestart  ·  "
-    "Wit = 0 uur  ·  "
-    "Donkerder blauw = meer uren  ·  "
-    "Grijs = na laatste actieve week  ·  "
-    "Rood budget = projectbudget €0"
+    "Dit overzicht laat per project zien hoeveel uur er in iedere week is geboekt. "
+    "Let vooral op weken met 0 uur, omdat het project dan wel actief is maar er geen uren zijn geregistreerd. "
+    "Als er geen projectbudget wordt weergegeven, ontbreekt dit project in het projecten & budgetoverzicht. "
+    "Een projectbudget van €0 betekent dat het budget nog niet is gedefinieerd."
 )
 
-st.dataframe(
+selectie = st.dataframe(
     stijl,
     column_config=kolom_config,
     hide_index=True,
     use_container_width=True,
     height=600,
-    row_height=28
+    row_height=28,
+    key="project_overzicht",
+    on_select="rerun",
+    selection_mode="single-row"
 )
+
+if selectie.selection.rows:
+    rij = selectie.selection.rows[0]
+    gekozen_project = overzicht.iloc[rij]["Project"]
+
+    st.session_state["geselecteerd_project"] = gekozen_project
+
+    st.switch_page("Paginas/OverzichtProjectBezetting.py")
