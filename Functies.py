@@ -631,14 +631,25 @@ def inlezen_uurtarieven(titel, uitleg, key):
     if bestand is not None:
         try:
             if bestand.name.lower().endswith(".xlsx"):
-                data = pd.read_excel(bestand)
+                data = pd.read_excel(bestand, header=1)
             else:
                 data = pd.read_csv(
                     bestand,
                     sep=None,
-                    engine="python"
+                    engine="python",
+                    header=1
                 )
 
+            # Lege extra kolommen verwijderen
+            data = data.loc[
+                :,
+                ~data.columns.astype(str).str.startswith("Unnamed")
+            ]
+
+            # Alleen echte tariefregels behouden
+            data = data.dropna(subset=["Grade"])
+
+            # Spaties uit kolomnamen verwijderen
             data.columns = data.columns.astype(str).str.strip()
 
             st.success("Uurtarieven succesvol ingelezen.")
