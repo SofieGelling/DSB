@@ -147,10 +147,31 @@ def kleur_cel(waarde):
             "font-weight: bold;"
         )
 
-stijl = overzicht.style.map(
-    kleur_cel,
-    subset=week_kolommen
+stijl = (
+    overzicht.style
+    .map(kleur_cel, subset=week_kolommen)
+    .set_properties(
+        subset=week_kolommen,
+        **{
+            "font-size": "9px",
+            "text-align": "center",
+            "padding": "1px"
+        }
+    )
 )
+
+# Smalle weekkolommen
+kolom_config = {
+    "Project": st.column_config.TextColumn("Project", width=130),
+    "Start": st.column_config.TextColumn("Start", width=55),
+    "Laatste": st.column_config.TextColumn("Laatste", width=55)
+}
+
+for week in week_kolommen:
+    kolom_config[week] = st.column_config.TextColumn(
+        week,
+        width=42
+    )
 
 st.caption(
     "Lichtgrijs = nog niet gestart  ·  "
@@ -162,7 +183,9 @@ st.caption(
 
 st.dataframe(
     stijl,
+    column_config=kolom_config,
     hide_index=True,
     use_container_width=True,
-    height=600
+    height=550,
+    row_height=28
 )
