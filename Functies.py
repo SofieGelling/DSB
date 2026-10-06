@@ -453,9 +453,10 @@ def maak_naam_match(naam):
 
     return naam
 
-def bereken_projectkosten(projecturen, employees):
+def bereken_projectkosten(projecturen, employees, uurtarieven):
     data = projecturen.copy()
     werknemers = employees.copy()
+    tarieven = uurtarieven.copy()
 
     data["Hours"] = pd.to_numeric(
         data["Hours"], errors="coerce"
@@ -485,7 +486,7 @@ def bereken_projectkosten(projecturen, employees):
         )
     )
 
-    # Werknemersinformatie koppelen
+    # Employeegegevens koppelen
     employee_info = werknemers[
         [
             "naam_match",
@@ -525,20 +526,133 @@ def bereken_projectkosten(projecturen, employees):
         uren_per_persoon["Residence"].apply(bepaal_land)
     )
 
-    # Controle
-    uren_per_persoon["Controle"] = "OK"
+    # Grade schoonmaken voor koppeling
+    uren_per_persoon["grade_match"] = (
+        uren_per_persoon["Grade"]
+        .astype("string")
+        .str.strip()
+        .str.replace(r"\s+", " ", regex=True)
+        .str.lower()
+    )
 
-    uren_per_persoon.loc[
-        uren_per_persoon["Full Name"].isna(),
-        "Controle"
-    ] = "Werknemer niet gevonden"
+    tarieven.columns = tarieven.columns.astype(str).str.strip()
 
-    uren_per_persoon.loc[
-        uren_per_persoon["Full Name"].notna()
-        & uren_per_persoon["Residence"].isna(),
-        "Controle"
-    ] = "Residence ontbreekt"
+    tarieven["grade_match"] = (
+        tarieven["Grade"]
+        .astype("string")
+        .str.strip()
+        .str.replace(r"\s+", " ", regex=True)
+        .str.lower()
+    )
+
+    # Tarieven numeriek maken
+    landen = ["Netherlands", "Belgium", "U.S.A.", "Norway"]
+
+    for land in landen:
+        if land in tarieven.columns:
+            tarieven[land] = pd.to_numeric(
+                tarieven[land],
+                errors="coerce"
+            )
+
+    # Uurtarief per werknemer bepalen
+    def zoek_uurtarief(rij):
+        if pd.isna(rij["Full Name"]):
+            return pd.Series([pd.NA, pd.NA, "Werknemer niet gevonden"])
+
+        if pd.isna(rij["Grade"]) or str(rij["Grade"]).strip() == "":
+            return pd.Series([
+                pd.NA,
+                pd.NA,
+                "Geen grade - salarisberekening nodig"
+            ])
+
+        land = rij["Gekozen land"]
+
+        if land not in tarieven.columns:
+            return pd.Series([
+                pd.NA,
+                pd.NA,
+                f"Geen tariefkolom voor {land}"
+            ])
+
+        match = tarieven[
+            tarieven["grade_match"] == rij["grade_match"]
+        ]
+
+        if match.empty:
+            return pd.Series([
+                pd.NA,
+                pd.NA,
+                "Grade niet gevonden in tarieventabel"
+            ])
+
+        tarief = match.iloc[0][land]
+
+        if pd.isna(tarief):
+            return pd.Series([
+                pd.NA,
+                pd.NA,
+                f"Geen tarief voor {rij['Grade']} in {land}"
+            ])
+
+        valuta = {
+            "Netherlands": "EUR",
+            "Belgium": "EUR",
+            "U.S.A.": "USD",
+            "Norway": "NOK"
+        }.get(land)
+
+        return pd.Series([
+            tarief,
+            valuta,
+            "OK"
+        ])
+
+    uren_per_persoon[
+        ["Uurtarief", "Valuta", "Controle"]
+    ] = uren_per_persoon.apply(
+        zoek_uurtarief,
+        axis=1
+    )
 
     return uren_per_persoon
+
+def inlezen_uurtarieven(titel, uitleg, key):
+    st.subheader(titel)
+    st.write(uitleg)
+
+    bestand = st.file_uploader(
+        f"Upload bestand voor {titel}",
+        type=["csv", "xlsx"],
+        key=key
+    )
+
+    if bestand is not None:
+        try:
+            if bestand.name.lower().endswith(".xlsx"):
+                data = pd.read_excel(bestand)
+            else:
+                data = pd.read_csv(
+                    bestand,
+                    sep=None,
+                    engine="python"
+                )
+
+            data.columns = data.columns.astype(str).str.strip()
+
+            st.success("Uurtarieven succesvol ingelezen.")
+            st.dataframe(data, hide_index=True)
+
+            return data
+
+        except Exception as fout:
+            st.error(
+                f"Bestand '{bestand.name}' kon niet worden ingelezen: {fout}"
+            )
+
+    return None
+
+
 
 

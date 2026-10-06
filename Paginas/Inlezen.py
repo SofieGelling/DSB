@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
-
-from Functies import bestanden_inlezen, inlezen_employee_bestanden
+from Functies import (
+    bestanden_inlezen,
+    inlezen_employee_bestanden,
+    inlezen_uurtarieven)
 
 
 st.title("Data inlezen")
@@ -38,3 +40,15 @@ project_budget = bestanden_inlezen(
 
 if project_budget is not None:
     st.session_state["project_budget"] = project_budget
+
+    
+# uurtarrieven
+uurtarieven = inlezen_uurtarieven(
+    "Uurtarieven",
+    "Upload het bestand met de uurtarieven per grade en land.",
+    "uurtarieven_upload"
+)
+
+if uurtarieven is not None:
+    st.session_state["uurtarieven"] = uurtarieven
+

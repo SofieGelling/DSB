@@ -36,8 +36,11 @@ with tab_project_budget:
 
 # KOPPELING WERKNEMERS
 with tab_koppeling:
-    if "projecturen" in st.session_state and "werknemers" in st.session_state:
-
+    if (
+        "projecturen" in st.session_state
+        and "werknemers" in st.session_state
+        and "uurtarieven" in st.session_state
+    ):
         projecturen = st.session_state.get(
             "projecturen_schoon",
             st.session_state["projecturen"]
@@ -50,7 +53,8 @@ with tab_koppeling:
 
         kosten_data = bereken_projectkosten(
             projecturen,
-            werknemers
+            werknemers,
+            st.session_state["uurtarieven"]
         )
 
         controle_koppeling = (
@@ -62,6 +66,8 @@ with tab_koppeling:
                     "Residence",
                     "Gekozen land",
                     "Grade",
+                    "Uurtarief",
+                    "Valuta",
                     "Controle"
                 ]
             ]
@@ -79,10 +85,12 @@ with tab_koppeling:
         ]
 
         if problemen.empty:
-            st.success("Alle werknemers zijn correct gekoppeld.")
+            st.success(
+                "Alle werknemers zijn correct gekoppeld aan een uurtarief."
+            )
         else:
             st.warning(
-                f"Bij {len(problemen)} werknemer(s) is een probleem gevonden."
+                f"Bij {len(problemen)} werknemer(s) moet de koppeling worden gecontroleerd."
             )
 
         st.dataframe(
@@ -92,6 +100,17 @@ with tab_koppeling:
         )
 
     else:
+        ontbreekt = []
+
+        if "projecturen" not in st.session_state:
+            ontbreekt.append("projecturen")
+
+        if "werknemers" not in st.session_state:
+            ontbreekt.append("werknemers")
+
+        if "uurtarieven" not in st.session_state:
+            ontbreekt.append("uurtarieven")
+
         st.info(
-            "Upload eerst zowel de projecturen als de werknemersgegevens."
+            "Upload eerst: " + ", ".join(ontbreekt) + "."
         )
