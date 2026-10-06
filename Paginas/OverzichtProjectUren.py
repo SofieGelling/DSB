@@ -9,6 +9,64 @@ if "projecturen_schoon" not in st.session_state:
 
 projecturen = st.session_state["projecturen_schoon"].copy()
 
+# Dataset met projecten en budgetten zoeken
+project_budget = None
+
+for waarde in st.session_state.values():
+    if isinstance(waarde, pd.DataFrame):
+        if (
+            "Project" in waarde.columns
+            and ("Budget_NL€" in waarde.columns or "Budget_BE€" in waarde.columns)
+        ):
+            project_budget = waarde.copy()
+            break
+
+if project_budget is None:
+    st.info("Lees eerst het bestand met projecten en budgetten in.")
+    st.stop()
+
+# Projectnamen gelijk maken voor koppeling
+projecturen["project_match"] = (
+    projecturen["Project"]
+    .astype(str)
+    .str.strip()
+    .str.lower()
+)
+
+project_budget["project_match"] = (
+    project_budget["Project"]
+    .astype(str)
+    .str.strip()
+    .str.lower()
+)
+
+# Budgetkolommen aanwezig maken
+if "Budget_NL€" not in project_budget.columns:
+    project_budget["Budget_NL€"] = pd.NA
+
+if "Budget_BE€" not in project_budget.columns:
+    project_budget["Budget_BE€"] = pd.NA
+
+project_budget["Budget_NL€"] = pd.to_numeric(
+    project_budget["Budget_NL€"], errors="coerce"
+)
+
+project_budget["Budget_BE€"] = pd.to_numeric(
+    project_budget["Budget_BE€"], errors="coerce"
+)
+
+# NL-budget gebruiken, anders BE-budget
+project_budget["Project budget"] = (
+    project_budget["Budget_NL€"]
+    .fillna(project_budget["Budget_BE€"])
+)
+
+budget_per_project = (
+    project_budget
+    .groupby("project_match")["Project budget"]
+    .max()
+)
+
 # Uren en weken
 projecturen["Hours"] = pd.to_numeric(
     projecturen["Hours"], errors="coerce"
@@ -27,33 +85,11 @@ projecturen["Week"] = pd.to_numeric(
 projecturen = projecturen.dropna(subset=["Week"])
 projecturen["Week"] = projecturen["Week"].astype(int)
 
-# Projectbudget bepalen
-projecturen["Project budget"] = pd.NA
-
-if "Budget_NL€" in projecturen.columns:
-    projecturen["Project budget"] = projecturen["Budget_NL€"]
-
-if "Budget_BE€" in projecturen.columns:
-    projecturen["Project budget"] = (
-        projecturen["Project budget"]
-        .fillna(projecturen["Budget_BE€"])
-    )
-
-projecturen["Project budget"] = pd.to_numeric(
-    projecturen["Project budget"], errors="coerce"
-)
-
 uren_per_week = (
     projecturen
-    .groupby(["Project", "Week"])["Hours"]
+    .groupby(["Project", "project_match", "Week"])["Hours"]
     .sum()
     .reset_index()
-)
-
-budget_per_project = (
-    projecturen
-    .groupby("Project")["Project budget"]
-    .max()
 )
 
 laatste_week = int(projecturen["Week"].max())
@@ -66,6 +102,11 @@ for project in projecten:
     data_project = uren_per_week[
         uren_per_week["Project"] == project
     ]
+
+    project_match = (
+        data_project["project_match"].iloc[0]
+        if not data_project.empty else ""
+    )
 
     actieve_weken = data_project[
         data_project["Hours"] > 0
@@ -84,7 +125,7 @@ for project in projecten:
 
     rij = {
         "Project": project,
-        "Project budget": budget_per_project.get(project),
+        "Project budget": budget_per_project.get(project_match, pd.NA),
         "Start": startweek if startweek is not None else "-",
         "Laatste": laatste_actieve_week if laatste_actieve_week is not None else "-"
     }
@@ -130,22 +171,32 @@ def kleur_cel(waarde):
     else:
         return "background-color: #21689d; color: white; font-weight: bold"
 
-# Budget 0 rood maken
+# Budget €0 rood
 def kleur_budget(waarde):
     if pd.isna(waarde):
         return ""
+
     if waarde == 0:
-        return "background-color: #ffd6d6; color: #a40000; font-weight: bold"
+        return (
+            "background-color: #ffd6d6; "
+            "color: #a40000; "
+            "font-weight: bold"
+        )
+
     return ""
+
+def format_budget(waarde):
+    if pd.isna(waarde):
+        return "-"
+
+    bedrag = f"{waarde:,.0f}".replace(",", ".")
+    return f"€ {bedrag}"
 
 stijl = (
     overzicht.style
     .map(kleur_cel, subset=week_kolommen)
     .map(kleur_budget, subset=["Project budget"])
-    .format(
-        {"Project budget": lambda x: "-" if pd.isna(x) else f"€ {x:,.0f}"},
-        thousands="."
-    )
+    .format({"Project budget": format_budget})
     .set_properties(
         subset=week_kolommen,
         **{
@@ -157,16 +208,28 @@ stijl = (
 )
 
 kolom_config = {
-    "Project": st.column_config.TextColumn("Project", width=120),
-    "Project budget": st.column_config.TextColumn("Budget", width=90),
-    "Start": st.column_config.TextColumn("Start", width=50),
-    "Laatste": st.column_config.TextColumn("Laatste", width=55)
+    "Project": st.column_config.TextColumn(
+        "Project",
+        width=120
+    ),
+    "Project budget": st.column_config.Column(
+        "Budget",
+        width=90
+    ),
+    "Start": st.column_config.TextColumn(
+        "Start",
+        width=50
+    ),
+    "Laatste": st.column_config.TextColumn(
+        "Laatste",
+        width=55
+    )
 }
 
 for week in week_kolommen:
     kolom_config[week] = st.column_config.TextColumn(
         week,
-        width=35
+        width=33
     )
 
 st.caption(
