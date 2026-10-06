@@ -108,7 +108,8 @@ def kleur_cel(waarde):
     if uren == 0:
         return (
             "background-color: #ffffff; "
-            "color: #ffffff;"
+            "color: #666666; "
+            "font-weight: bold;"
         )
 
     # 1 - 30 uur
