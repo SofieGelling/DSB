@@ -631,26 +631,44 @@ def inlezen_uurtarieven(titel, uitleg, key):
     if bestand is not None:
         try:
             if bestand.name.lower().endswith(".xlsx"):
-                data = pd.read_excel(bestand, header=1)
+                data = pd.read_excel(bestand, header=None)
             else:
                 data = pd.read_csv(
                     bestand,
                     sep=None,
                     engine="python",
-                    header=1
+                    header=None
                 )
 
-            # Lege extra kolommen verwijderen
-            data = data.loc[
-                :,
-                ~data.columns.astype(str).str.startswith("Unnamed")
+            # Eerste rij overslaan:
+            # "Rate per hour | Country | ..."
+            data = data.iloc[1:, :5].copy()
+
+            # Zelf de juiste kolomnamen geven
+            data.columns = [
+                "Grade",
+                "Netherlands",
+                "Belgium",
+                "U.S.A.",
+                "Norway"
             ]
 
-            # Alleen echte tariefregels behouden
-            data = data.dropna(subset=["Grade"])
+            # Eerste rij bevat nogmaals de kolomnamen
+            if str(data.iloc[0]["Grade"]).strip().lower() == "grade":
+                data = data.iloc[1:]
 
-            # Spaties uit kolomnamen verwijderen
-            data.columns = data.columns.astype(str).str.strip()
+            # Onderste rij met valuta verwijderen
+            data = data[
+                data["Grade"].notna()
+            ]
+
+            data = data[
+                ~data["Netherlands"]
+                .astype(str)
+                .str.contains("in EUR", case=False, na=False)
+            ]
+
+            data = data.reset_index(drop=True)
 
             st.success("Uurtarieven succesvol ingelezen.")
             st.dataframe(data, hide_index=True)
