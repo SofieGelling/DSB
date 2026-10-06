@@ -624,26 +624,19 @@ def inlezen_uurtarieven(titel, uitleg, key):
 
     bestand = st.file_uploader(
         f"Upload bestand voor {titel}",
-        type=["csv", "xlsx"],
+        type=["xlsx"],
         key=key
     )
 
     if bestand is not None:
         try:
-            if bestand.name.lower().endswith(".xlsx"):
-                data = pd.read_excel(bestand, header=1)
-            else:
-                data = pd.read_csv(
-                    bestand,
-                    sep=None,
-                    engine="python",
-                    header=1
-                )
+            data = pd.read_excel(
+                bestand,
+                sheet_name="Rates",
+                header=1,
+                usecols="A:E"
+            )
 
-            # Alleen de eerste 5 kolommen
-            data = data.iloc[:, :5]
-
-            # Kolomnamen vastzetten
             data.columns = [
                 "Grade",
                 "Netherlands",
@@ -653,7 +646,14 @@ def inlezen_uurtarieven(titel, uitleg, key):
             ]
 
             # Onderste rij met valuta verwijderen
-            data = data[data["Grade"].notna()]
+            data = data[data["Grade"].notna()].copy()
+
+            # '-' behandelen als ontbrekend tarief
+            for land in ["Netherlands", "Belgium", "U.S.A.", "Norway"]:
+                data[land] = pd.to_numeric(
+                    data[land].replace("-", pd.NA),
+                    errors="coerce"
+                )
 
             data = data.reset_index(drop=True)
 
