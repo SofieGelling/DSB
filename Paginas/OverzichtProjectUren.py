@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from Functies import overzicht_projecten
 
 st.title("Overzicht projecturen")
 
@@ -9,21 +8,6 @@ if "projecturen_schoon" not in st.session_state:
     st.stop()
 
 projecturen = st.session_state["projecturen_schoon"].copy()
-
-# ---------------------------------------------------------
-# OVERZICHT PER PROJECT
-# ---------------------------------------------------------
-
-st.subheader("Uren per project")
-overzicht_projecten(projecturen)
-
-st.divider()
-
-# ---------------------------------------------------------
-# PROJECTPLANNING PER WEEK
-# ---------------------------------------------------------
-
-st.subheader("Projectplanning per week")
 
 projecturen["Hours"] = pd.to_numeric(
     projecturen["Hours"], errors="coerce"
@@ -50,8 +34,13 @@ uren_per_week = (
 )
 
 laatste_week = int(projecturen["Week"].max())
-weken = range(0, laatste_week + 1)
-projecten = sorted(projecturen["Project"].dropna().unique())
+
+# Vanaf week 1, dus geen W0
+weken = range(1, laatste_week + 1)
+
+projecten = sorted(
+    projecturen["Project"].dropna().unique()
+)
 
 rijen = []
 
@@ -83,10 +72,11 @@ for project in projecten:
             if laatste_actieve_week is not None
             else "-"
         ),
-        "Totaal": round(data_project["Hours"].sum(), 1)
+        "Totaal uren": round(data_project["Hours"].sum(), 1)
     }
 
     for week in weken:
+
         if startweek is None or week < startweek:
             waarde = "NS"
 
@@ -107,34 +97,95 @@ for project in projecten:
 
 overzicht = pd.DataFrame(rijen)
 
-# Sorteren op startweek
-overzicht["_sort"] = pd.to_numeric(
-    overzicht["Start"], errors="coerce"
-).fillna(999)
+# ---------------------------------------------------------
+# SORTERING
+# ---------------------------------------------------------
 
-overzicht = (
-    overzicht
-    .sort_values("_sort")
-    .drop(columns="_sort")
+sortering = st.selectbox(
+    "Sorteer projecten op",
+    [
+        "Startweek",
+        "Totaal uren - hoog naar laag",
+        "Totaal uren - laag naar hoog",
+        "Laatste activiteit",
+        "Projectnaam"
+    ]
 )
+
+if sortering == "Startweek":
+    overzicht["_sort"] = pd.to_numeric(
+        overzicht["Start"], errors="coerce"
+    ).fillna(999)
+
+    overzicht = (
+        overzicht
+        .sort_values("_sort")
+        .drop(columns="_sort")
+    )
+
+elif sortering == "Totaal uren - hoog naar laag":
+    overzicht = overzicht.sort_values(
+        "Totaal uren",
+        ascending=False
+    )
+
+elif sortering == "Totaal uren - laag naar hoog":
+    overzicht = overzicht.sort_values(
+        "Totaal uren",
+        ascending=True
+    )
+
+elif sortering == "Laatste activiteit":
+    overzicht["_sort"] = pd.to_numeric(
+        overzicht["Laatste actief"],
+        errors="coerce"
+    ).fillna(999)
+
+    overzicht = (
+        overzicht
+        .sort_values("_sort")
+        .drop(columns="_sort")
+    )
+
+else:
+    overzicht = overzicht.sort_values("Project")
 
 week_kolommen = [
     kolom for kolom in overzicht.columns
     if kolom.startswith("W")
 ]
 
-# Kleuren
+# ---------------------------------------------------------
+# KLEUREN
+# ---------------------------------------------------------
+
 def kleur_cel(waarde):
+
     if waarde == "NS":
         return "background-color: #eeeeee; color: #888888"
 
-    if waarde == "0":
-        return "background-color: #ffd6d6; color: #9b1c1c; font-weight: bold"
-
     if waarde == "—":
-        return "background-color: #dddddd; color: #777777"
+        return "background-color: #dddddd; color: #888888"
 
-    return "background-color: #d9ecff; color: #123a5a; font-weight: bold"
+    uren = float(waarde)
+
+    if uren == 0:
+        return "background-color: #ffffff; color: #666666"
+
+    elif uren <= 30:
+        return "background-color: #eaf4ff; color: #123a5a"
+
+    elif uren <= 50:
+        return "background-color: #cfe8ff; color: #123a5a"
+
+    elif uren <= 70:
+        return "background-color: #8fc7f5; color: #0b3150"
+
+    elif uren <= 90:
+        return "background-color: #4a98d1; color: white"
+
+    else:
+        return "background-color: #17649a; color: white; font-weight: bold"
 
 stijl = overzicht.style.map(
     kleur_cel,
@@ -143,14 +194,16 @@ stijl = overzicht.style.map(
 
 st.caption(
     "NS = nog niet gestart  |  "
-    "Blauw = uren geboekt  |  "
-    "Rood = 0 uur tijdens actieve projectperiode  |  "
-    "— = geen activiteit meer na laatste geboekte week"
+    "0 = geen uren geboekt  |  "
+    "1–30 = lichtblauw  |  "
+    "31–50  |  51–70  |  71–90  |  "
+    ">90 = donkerblauw  |  "
+    "— = na laatste actieve week"
 )
 
 st.dataframe(
     stijl,
     hide_index=True,
     use_container_width=True,
-    height=600
+    height=650
 )
