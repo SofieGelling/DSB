@@ -1,9 +1,5 @@
 import streamlit as st
-from Functies import (
-    controle_data,
-    missende_waarden,
-    bereken_projectkosten
-)
+from Functies import controle_data, missende_waarden, bereken_projectkosten
 
 st.title("Datacontrole")
 
@@ -40,13 +36,21 @@ with tab_project_budget:
 
 # KOPPELING WERKNEMERS
 with tab_koppeling:
-    if (
-        "projecturen" in st.session_state
-        and "werknemers" in st.session_state
-    ):
-        kosten_data = bereken_projectkosten(
-            st.session_state["projecturen"],
+    if "projecturen" in st.session_state and "werknemers" in st.session_state:
+
+        projecturen = st.session_state.get(
+            "projecturen_schoon",
+            st.session_state["projecturen"]
+        )
+
+        werknemers = st.session_state.get(
+            "werknemers_schoon",
             st.session_state["werknemers"]
+        )
+
+        kosten_data = bereken_projectkosten(
+            projecturen,
+            werknemers
         )
 
         controle_koppeling = (
@@ -75,7 +79,7 @@ with tab_koppeling:
             st.success("Alle werknemers zijn correct gekoppeld.")
         else:
             st.warning(
-                f"Bij {len(problemen)} koppeling(en) is een probleem gevonden."
+                f"Bij {len(problemen)} werknemer(s) is een probleem gevonden."
             )
 
         st.dataframe(
