@@ -1,0 +1,37 @@
+Project,BusinessUnit,Country,ProjMgr,Budget_NL€,Budget_BE€
+RET00360090,Retail,Nederland,Michiel Schoots,84825
+RET00410058,Retail,Nederland,Ivan Harris,45000
+RET00640025,Retail,Nederland,Dirk Heerenbosch,142025
+RET00720011,Retail,Nederland,Isaac Kirkpatrick,131149
+RET00810014,Retail,Nederland,David Davis,157400
+RET00820079,Retail,Nederland,Michiel Schoots,50000
+RET00990021,Retail,Nederland,Kimberly Lewis,105994
+RET01060029,Retail,Nederland,Arno van der Laan,12025
+RET01060030,Retail,Nederland,Arno van der Laan,4000
+RET01060031,Retail,Nederland,Arno van der Laan,0
+AUT00290054,Automotive,Nederland,Christopher Peterson,210500
+AUT00050068,Automotive,Nederland,Chadwick Butler,120250
+AUT00300080,Automotive,Nederland,William Franklin,176755
+AUT00420075,Automotive,Nederland,Gordon Wendall,610000
+AUT00490060,Automotive,Nederland,Christopher Peterson,182300
+AUT00500087,Automotive,Nederland,Isaac Kirkpatrick,100000
+AUT00560058,Automotive,Nederland,Melissa East,572665
+AUT00630010,Automotive,Nederland,Zack South,320538
+AUT00740022,Automotive,Nederland,Gail Thompson,452300
+AUT00750100,Automotive,Nederland,Chuck Gates,0
+AUT00790056,Automotive,Nederland,Charles Sheppard,66118
+AUT00850064,Automotive,Nederland,Lionel Collins,350685
+AUT00890080,Automotive,Nederland,Henry McGregor,100000
+AUT00930006,Automotive,Nederland,Patricia Hodler,156000
+AUT00940051,Automotive,Nederland,Douglas Stone,0
+AUT00950082,Automotive,Nederland,Christopher Peterson,92300
+MED00120064,Medisch,België,Esme Bakker,,110000
+MED00210056,Medisch,Nederland,Dwight Jennings,223956
+MED00220083,Medisch,Nederland,Daphne Koller,100000
+MED00230093,Medisch,Nederland,Sophie Burnett,0
+MED00310044,Medisch,Nederland,Gordon Wendall,421880
+MED00500071,Medisch,Nederland,Tina Byrd,305810
+MED00590022,Medisch,Nederland,Dirk Heerenbosch,176755
+MED00680020,Medisch,Nederland,Henry McGregor,510000
+MED00700012,Medisch,België,Esme Bakker,,250000
+MED00970004,Medisch,Nederland,Daphne Koller,172505

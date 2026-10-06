@@ -1,0 +1,14 @@
+Table Employees
+-----------------
+Col 1: File row number
+Col 2: Employee's Full Name (, title if known)
+Col 3: Internal Employee Number
+Col 4: Gender
+Col 5: Residence of Employee
+Col 6: Date of Birth
+Col 7: Annual Salary (in euros, based on 1FTE)
+Col 8: Employee's Work Location
+Col 9: Contract Start Date / Employee since
+Col 10: Contract End Date / Employee until (when empty the employee has a contract of indefinite duration)
+Col 11: Consultancy grade (if consultant)
+Col 12: Contract in FTE (1.0FTE is 40 hours/wk and 25 vacation days)

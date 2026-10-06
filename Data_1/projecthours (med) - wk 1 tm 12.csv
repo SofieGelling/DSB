@@ -1,0 +1,257 @@
+Week,Project,Consultant,Hours
+1,MED00120064,Benjamin Reynolds,27
+1,MED00120064,Esme Bakker,28
+1,MED00120064,George Smith,14
+1,MED00210056,Dwight Jennings,32
+1,MED00210056,Fiona Andrews,23
+1,MED00210056,Kenneth Roberts,7
+1,MED00220083,Daphne Koller,23
+1,MED00220083,Kenneth Roberts,25
+1,MED00220083,Norbert Jameson,21
+1,MED00230093,Bart Cline,19
+1,MED00230093,Carmen van Walraven,14
+1,MED00310044,Carmen van Walraven,38
+1,MED00310044,Fung K. Ching,20
+1,MED00310044,Gordon Wendall,18
+1,MED00310044,Jo Wright,23
+1,MED00500071,Fung K. Ching,12
+1,MED00500071,Marty Webber,27
+1,MED00500071,Tina Byrd,28
+2,MED00120064,Benjamin Reynolds,29
+2,MED00120064,Esme Bakker,28
+2,MED00120064,George Smith,14
+2,MED00210056,Dwight Jennings,32
+2,MED00210056,Fiona Andrews,21
+2,MED00210056,Kenneth Roberts,9
+2,MED00220083,Daphne Koller,22
+2,MED00220083,Kenneth Roberts,23
+2,MED00220083,Norbert Jameson,24
+2,MED00230093,Bart Cline,22
+2,MED00230093,Carmen van Walraven,10
+2,MED00310044,Carmen van Walraven,29
+2,MED00310044,Fung K. Ching,19
+2,MED00310044,Gordon Wendall,18
+2,MED00310044,Jo Wright,22
+2,MED00500071,Fung K. Ching,13
+2,MED00500071,Marty Webber,27
+2,MED00500071,Tina Byrd,30
+3,MED00120064,Benjamin Reynolds,27
+3,MED00120064,Esme Bakker,27
+3,MED00120064,George Smith,13
+3,MED00210056,Dwight Jennings,32
+3,MED00210056,Fiona Andrews,23
+3,MED00210056,Kenneth Roberts,7
+3,MED00220083,Daphne Koller,20
+3,MED00220083,Kenneth Roberts,25
+3,MED00220083,Norbert Jameson,25
+3,MED00230093,Bart Cline,19
+3,MED00230093,Carmen van Walraven,12
+3,MED00310044,Carmen van Walraven,30
+3,MED00310044,Fung K. Ching,19
+3,MED00310044,Gordon Wendall,18
+3,MED00310044,Jo Wright,21
+3,MED00500071,Fung K. Ching,13
+3,MED00500071,Marty Webber,23
+3,MED00500071,Tina Byrd,27
+3,MED00590022,Dirk Heerenbosch,7
+3,MED00590022,George Morris,24
+4,MED00120064,Benjamin Reynolds,28
+4,MED00120064,Esme Bakker,28
+4,MED00120064,George Smith,13
+4,MED00210056,Dwight Jennings,32
+4,MED00210056,Fiona Andrews,22
+4,MED00210056,Kenneth Roberts,6
+4,MED00220083,Daphne Koller,23
+4,MED00220083,Kenneth Roberts,26
+4,MED00220083,Norbert Jameson,22
+4,MED00230093,Bart Cline,20
+4,MED00230093,Carmen van Walraven,10
+4,MED00310044,Carmen van Walraven,29
+4,MED00310044,Fung K. Ching,20
+4,MED00310044,Gordon Wendall,16
+4,MED00310044,Jo Wright,22
+4,MED00500071,Fung K. Ching,12
+4,MED00500071,Marty Webber,27
+4,MED00500071,Tina Byrd,28
+4,MED00590022,Dirk Heerenbosch,7
+4,MED00590022,George Morris,31
+5,MED00120064,Benjamin Reynolds,29
+5,MED00120064,Esme Bakker,28
+5,MED00120064,George Smith,13
+5,MED00210056,Dwight Jennings,32
+5,MED00210056,Fiona Andrews,21
+5,MED00210056,Kenneth Roberts,9
+5,MED00220083,Daphne Koller,21
+5,MED00220083,Kenneth Roberts,23
+5,MED00220083,Norbert Jameson,23
+5,MED00230093,Bart Cline,22
+5,MED00230093,Carmen van Walraven,13
+5,MED00310044,Carmen van Walraven,25
+5,MED00310044,Fung K. Ching,20
+5,MED00310044,Gordon Wendall,17
+5,MED00310044,Jo Wright,20
+5,MED00500071,Fung K. Ching,12
+5,MED00500071,Marty Webber,25
+5,MED00500071,Tina Byrd,29
+5,MED00590022,Dirk Heerenbosch,6
+5,MED00590022,George Morris,29
+6,MED00120064,Benjamin Reynolds,28
+6,MED00120064,Esme Bakker,29
+6,MED00120064,George Smith,14
+6,MED00210056,Dwight Jennings,32
+6,MED00210056,Fiona Andrews,23
+6,MED00210056,Kenneth Roberts,8
+6,MED00220083,Daphne Koller,18
+6,MED00220083,Kenneth Roberts,24
+6,MED00220083,Norbert Jameson,23
+6,MED00230093,Bart Cline,18
+6,MED00230093,Carmen van Walraven,16
+6,MED00310044,Carmen van Walraven,31
+6,MED00310044,Fung K. Ching,19
+6,MED00310044,Gordon Wendall,18
+6,MED00310044,Jo Wright,21
+6,MED00500071,Fung K. Ching,13
+6,MED00500071,Marty Webber,25
+6,MED00500071,Tina Byrd,29
+6,MED00590022,Dirk Heerenbosch,7
+6,MED00590022,George Morris,26
+7,MED00120064,Benjamin Reynolds,27
+7,MED00120064,Esme Bakker,29
+7,MED00120064,George Smith,13
+7,MED00210056,Dwight Jennings,32
+7,MED00210056,Fiona Andrews,25
+7,MED00210056,Kenneth Roberts,8
+7,MED00220083,Daphne Koller,20
+7,MED00220083,Kenneth Roberts,24
+7,MED00220083,Norbert Jameson,25
+7,MED00230093,Bart Cline,23
+7,MED00230093,Carmen van Walraven,12
+7,MED00310044,Carmen van Walraven,31
+7,MED00310044,Fung K. Ching,19
+7,MED00310044,Gordon Wendall,17
+7,MED00310044,Jo Wright,20
+7,MED00500071,Fung K. Ching,13
+7,MED00500071,Marty Webber,24
+7,MED00500071,Tina Byrd,27
+7,MED00590022,Dirk Heerenbosch,7
+7,MED00590022,George Morris,32
+8,MED00120064,Benjamin Reynolds,28
+8,MED00120064,Esme Bakker,28
+8,MED00120064,George Smith,13
+8,MED00210056,Dwight Jennings,32
+8,MED00210056,Fiona Andrews,22
+8,MED00210056,Kenneth Roberts,7
+8,MED00220083,Daphne Koller,19
+8,MED00220083,Kenneth Roberts,25
+8,MED00220083,Norbert Jameson,24
+8,MED00230093,Bart Cline,21
+8,MED00230093,Carmen van Walraven,11
+8,MED00310044,Carmen van Walraven,35
+8,MED00310044,Fung K. Ching,20
+8,MED00310044,Gordon Wendall,18
+8,MED00310044,Jo Wright,21
+8,MED00500071,Fung K. Ching,12
+8,MED00500071,Marty Webber,22
+8,MED00500071,Tina Byrd,29
+8,MED00590022,Dirk Heerenbosch,4
+8,MED00590022,George Morris,25
+8,MED00922022,Chantal de Vries,40
+9,MED00120064,Benjamin Reynolds,28
+9,MED00120064,Esme Bakker,27
+9,MED00120064,George Smith,13
+9,MED00210056,Dwight Jennings,32
+9,MED00210056,Fiona Andrews,22
+9,MED00210056,Kenneth Roberts,9
+9,MED00220083,Daphne Koller,20
+9,MED00220083,Kenneth Roberts,23
+9,MED00220083,Norbert Jameson,21
+9,MED00230093,Bart Cline,22
+9,MED00230093,Carmen van Walraven,12
+9,MED00230093,Sophie Burnett,16
+9,MED00310044,Carmen van Walraven,30
+9,MED00310044,Fung K. Ching,19
+9,MED00310044,Gordon Wendall,19
+9,MED00310044,Jo Wright,22
+9,MED00500071,Fung K. Ching,13
+9,MED00500071,Marty Webber,25
+9,MED00500071,Tina Byrd,31
+9,MED00590022,Dirk Heerenbosch,7
+9,MED00590022,George Morris,31
+9,MED00650064,Chadwick Butler,6
+9,MED00650064,Ray Michaels,27
+9,MED00922022,Chantal de Vries,45
+10,MED00120064,Benjamin Reynolds,28
+10,MED00120064,Esme Bakker,27
+10,MED00120064,George Smith,13
+10,MED00210056,Dwight Jennings,32
+10,MED00210056,Fiona Andrews,23
+10,MED00210056,Kenneth Roberts,7
+10,MED00220083,Daphne Koller,20
+10,MED00220083,Kenneth Roberts,25
+10,MED00220083,Norbert Jameson,18
+10,MED00230093,Bart Cline,19
+10,MED00230093,Carmen van Walraven,15
+10,MED00230093,Sophie Burnett,20
+10,MED00310044,Carmen van Walraven,37
+10,MED00310044,Fung K. Ching,19
+10,MED00310044,Gordon Wendall,4
+10,MED00310044,Jo Wright,22
+10,MED00500071,Fung K. Ching,13
+10,MED00500071,Marty Webber,23
+10,MED00500071,Tina Byrd,31
+10,MED00590022,Dirk Heerenbosch,5
+10,MED00590022,George Morris,25
+10,MED00650064,Chadwick Butler,6
+10,MED00650064,Ray Michaels,26
+10,MED00922022,Chantal de Vries,41
+11,MED00120064,Benjamin Reynolds,27
+11,MED00120064,Esme Bakker,28
+11,MED00120064,George Smith,13
+11,MED00210056,Dwight Jennings,32
+11,MED00210056,Fiona Andrews,22
+11,MED00210056,Kenneth Roberts,7
+11,MED00220083,Daphne Koller,22
+11,MED00220083,Kenneth Roberts,25
+11,MED00220083,Norbert Jameson,19
+11,MED00230093,Bart Cline,23
+11,MED00230093,Sophie Burnett,20
+11,MED00310044,Carmen van Walraven,29
+11,MED00310044,Fung K. Ching,18
+11,MED00310044,Gordon Wendall,15
+11,MED00310044,Jo Wright,22
+11,MED00500071,Fung K. Ching,14
+11,MED00500071,Marty Webber,21
+11,MED00500071,Tina Byrd,30
+11,MED00590022,Dirk Heerenbosch,6
+11,MED00590022,George Morris,24
+11,MED00650064,Chadwick Butler,6
+11,MED00650064,Ray Michaels,27
+11,MED00922022,Chantal de Vries,24
+12,MED00120064,Benjamin Reynolds,28
+12,MED00120064,Esme Bakker,27
+12,MED00120064,George Smith,13
+12,MED00210056,Dwight Jennings,32
+12,MED00210056,Fiona Andrews,24
+12,MED00210056,Kenneth Roberts,8
+12,MED00220083,Daphne Koller,17
+12,MED00220083,Kenneth Roberts,24
+12,MED00220083,Norbert Jameson,22
+12,MED00230093,Bart Cline,21
+12,MED00230093,Sophie Burnett,21
+12,MED00310044,Carmen van Walraven,30
+12,MED00310044,Fung K. Ching,19
+12,MED00310044,Gordon Wendall,6
+12,MED00310044,Jo Wright,21
+12,MED00500071,Fung K. Ching,13
+12,MED00500071,Marty Webber,20
+12,MED00500071,Tina Byrd,30
+12,MED00590022,Dirk Heerenbosch,7
+12,MED00590022,George Morris,26
+12,MED00650064,Chadwick Butler,6
+12,MED00650064,Ray Michaels,27
+12,MED00680020,Henry McGregor,28
+12,MED00680020,Martin Jagers,30
+12,MED00680020,Vicky McCoy,14
+12,MED00680020,William Spader,28
+12,MED00922022,Chantal de Vries,40
+

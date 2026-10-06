@@ -1,0 +1,7 @@
+NOTE: in this file the field 'grade' contains the managers responsibility instead of the consultancy grade
+
+Row;Full Name;Employee Nr;Gender;Residence;Date of Birth;Annual Salary;Work Location;Contract Start Date;Contract End Date;Grade;Contract
+1;Dylan Smits;MW0205;M;Eindhoven;14-9-1985;94625;Tilburg;1-4-2010;;CEO;1.0FTE
+2;Sabine van de Meer;MW0211;V;Tilburg;3-2-1984;80869;Tilburg;1-9-2009;;COO;1.0FTE
+3;Vera van der Linden;MW0226;V;Vught;24-5-1961;100664;Tilburg;1-8-2017;;CFO;0.9FTE
+4;Kaj de Graaf;MW0207;M;Nijnsel;5-3-1985;117340;Tilburg;1-5-2016;;CTO;1.0FTE
