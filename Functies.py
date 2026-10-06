@@ -437,8 +437,100 @@ def missende_waarden(data):
             st.dataframe(rijen_budget_missend)
 
 
+def bereken_projectkosten(projecturen, employees):
+    data = projecturen.copy()
+    werknemers = employees.copy()
 
+    data["Hours"] = pd.to_numeric(
+        data["Hours"], errors="coerce"
+    ).fillna(0)
 
+    data["Week"] = pd.to_numeric(
+        data["Week"].astype(str).str.extract(r"(\d+)")[0],
+        errors="coerce"
+    )
+
+    data = data.dropna(subset=["Project", "Week", "Consultant"])
+    data["Week"] = data["Week"].astype(int)
+
+    # Uren per project, week en persoon
+    uren_per_persoon = (
+        data.groupby(
+            ["Project", "Week", "Consultant"],
+            as_index=False
+        )["Hours"].sum()
+    )
+
+    # Namen geschikt maken voor koppeling
+    uren_per_persoon["naam_match"] = (
+        uren_per_persoon["Consultant"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+
+    werknemers["naam_match"] = (
+        werknemers["Full Name"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+
+    # Werknemersgegevens toevoegen
+    employee_info = werknemers[
+        [
+            "naam_match",
+            "Full Name",
+            "Residence",
+            "Grade",
+            "Annual Salary",
+            "Contract"
+        ]
+    ].drop_duplicates("naam_match")
+
+    uren_per_persoon = uren_per_persoon.merge(
+        employee_info,
+        on="naam_match",
+        how="left"
+    )
+
+    # Residence omzetten naar land
+    def bepaal_land(residence):
+        if pd.isna(residence):
+            return pd.NA
+
+        residence = str(residence).strip().upper()
+
+        if residence.endswith(", BE"):
+            return "Belgium"
+        elif residence.endswith(", UK"):
+            return "UK"
+        elif residence.endswith(", NO"):
+            return "Norway"
+        elif residence.endswith(", US") or residence.endswith(", USA"):
+            return "U.S.A."
+        else:
+            return "Netherlands"
+
+    uren_per_persoon["Gekozen land"] = (
+        uren_per_persoon["Residence"].apply(bepaal_land)
+    )
+
+    # Eerste controles
+    uren_per_persoon["Controle"] = "OK"
+
+    uren_per_persoon.loc[
+        uren_per_persoon["Full Name"].isna(),
+        "Controle"
+    ] = "Werknemer niet gevonden"
+
+    uren_per_persoon.loc[
+        uren_per_persoon["Full Name"].notna()
+        & uren_per_persoon["Residence"].isna(),
+        "Controle"
+    ] = "Residence ontbreekt"
+
+    return uren_per_persoon
 
 
 
