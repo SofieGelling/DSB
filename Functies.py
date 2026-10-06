@@ -633,22 +633,15 @@ def inlezen_uurtarieven(titel, uitleg, key):
             data = pd.read_excel(
                 bestand,
                 sheet_name="Rates",
-                header=1,
+                skiprows=1,   # rij 1 overslaan
+                header=0,     # rij 2 wordt de header
                 usecols="A:E"
             )
 
-            data.columns = [
-                "Grade",
-                "Netherlands",
-                "Belgium",
-                "U.S.A.",
-                "Norway"
-            ]
-
             # Onderste rij met valuta verwijderen
-            data = data[data["Grade"].notna()].copy()
+            data = data.dropna(subset=["Grade"]).copy()
 
-            # '-' behandelen als ontbrekend tarief
+            # '-' betekent geen tarief
             for land in ["Netherlands", "Belgium", "U.S.A.", "Norway"]:
                 data[land] = pd.to_numeric(
                     data[land].replace("-", pd.NA),

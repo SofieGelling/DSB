@@ -1,7 +1,7 @@
 import streamlit as st
 from Functies import (
     bestanden_inlezen,
-    inlezen_employee_bestanden
+    inlezen_employee_bestanden, inlezen_uurtarieven
 )
 
 st.title("Data inlezen")
@@ -41,7 +41,7 @@ if project_budget is not None:
 
 
 # UURTARIEVEN
-uurtarieven = bestanden_inlezen(
+uurtarieven = inlezen_uurtarieven(
     titel="Uurtarieven",
     uitleg="Upload het bestand met de uurtarieven per grade en land.",
     key="uurtarieven_upload"
