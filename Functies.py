@@ -453,6 +453,17 @@ def maak_naam_match(naam):
 
     return naam
 
+def contract_factor(contract):
+    if pd.isna(contract):
+        return pd.NA
+
+    contract = str(contract).upper().replace("FTE", "").strip()
+
+    try:
+        return float(contract)
+    except:
+        return pd.NA
+
 def bereken_projectkosten(projecturen, employees, uurtarieven):
     data = projecturen.copy()
     werknemers = employees.copy()
@@ -561,11 +572,34 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
             return pd.Series([pd.NA, pd.NA, "Werknemer niet gevonden"])
 
         if pd.isna(rij["Grade"]) or str(rij["Grade"]).strip() == "":
+            salaris = pd.to_numeric(rij["Annual Salary"], errors="coerce")
+            contract = contract_factor(rij["Contract"])
+
+        if pd.isna(salaris):
+            return pd.Series([pd.NA, pd.NA, "Annual Salary ontbreekt"])
+
+        if pd.isna(contract):
             return pd.Series([
                 pd.NA,
                 pd.NA,
-                "Geen grade - salarisberekening nodig"
-            ])
+                "Contract ontbreekt of is niet herkenbaar"])
+
+        jaar_kosten = salaris * contract
+        dag_kosten = jaar_kosten / 260
+        uur_kosten = dag_kosten / 8
+
+        valuta = {
+            "Netherlands": "EUR",
+            "Belgium": "EUR",
+            "U.S.A.": "USD",
+            "Norway": "NOK",
+            "UK": "GBP"
+        }.get(rij["Gekozen land"])
+
+        return pd.Series([
+            round(uur_kosten, 2),
+            valuta,
+            "OK - berekend uit Annual Salary"])
 
         land = rij["Gekozen land"]
 
