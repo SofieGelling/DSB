@@ -170,7 +170,7 @@ kolom_config = {
 for week in week_kolommen:
     kolom_config[week] = st.column_config.TextColumn(
         week,
-        width=42
+        width=38
     )
 
 st.caption(
