@@ -437,6 +437,22 @@ def missende_waarden(data):
             st.dataframe(rijen_budget_missend)
 
 
+def maak_naam_match(naam):
+    if pd.isna(naam):
+        return ""
+
+    naam = str(naam).strip().lower()
+    naam = naam.lstrip(";").strip()
+
+    # Alles na een - verwijderen
+    naam = naam.split("-")[0].strip()
+
+    # Alles na een , verwijderen
+    naam = naam.split(",")[0].strip()
+
+    return naam
+
+
 def bereken_projectkosten(projecturen, employees):
     data = projecturen.copy()
     werknemers = employees.copy()
@@ -463,17 +479,11 @@ def bereken_projectkosten(projecturen, employees):
 
     # Namen gelijk maken
     uren_per_persoon["naam_match"] = (
-        uren_per_persoon["Consultant"]
-        .astype(str)
-        .str.strip()
-        .str.lower()
+        uren_per_persoon["Consultant"].apply(maak_naam_match)
     )
 
     werknemers["naam_match"] = (
-        werknemers["Full Name"]
-        .astype(str)
-        .str.strip()
-        .str.lower()
+        werknemers["Full Name"].apply(maak_naam_match)
     )
 
     # Werknemersinformatie koppelen
