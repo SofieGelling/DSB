@@ -27,4 +27,3 @@ pagina = st.navigation([
     pagina_KPI,
     ])
 
-pagina.run()
