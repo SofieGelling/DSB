@@ -469,16 +469,22 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
     werknemers = employees.copy()
     tarieven = uurtarieven.copy()
 
+    # Hours numeriek maken
     data["Hours"] = pd.to_numeric(
-        data["Hours"], errors="coerce"
+        data["Hours"],
+        errors="coerce"
     ).fillna(0)
 
+    # Weeknummer numeriek maken
     data["Week"] = pd.to_numeric(
         data["Week"].astype(str).str.extract(r"(\d+)")[0],
         errors="coerce"
     )
 
-    data = data.dropna(subset=["Project", "Week", "Consultant"])
+    data = data.dropna(
+        subset=["Project", "Week", "Consultant"]
+    )
+
     data["Week"] = data["Week"].astype(int)
 
     # Namen in beide bestanden schoonmaken
@@ -497,7 +503,7 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
         )
     )
 
-    # Employeegegevens koppelen
+    # Werknemersgegevens koppelen
     employee_info = werknemers[
         [
             "naam_match",
@@ -515,7 +521,10 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
         how="left"
     )
 
-    # Land bepalen
+    # --------------------------------------------------
+    # LAND BEPALEN
+    # --------------------------------------------------
+
     def bepaal_land(residence):
         if pd.isna(residence):
             return pd.NA
@@ -524,12 +533,16 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
 
         if residence.endswith(", BE"):
             return "Belgium"
+
         elif residence.endswith(", UK"):
             return "UK"
+
         elif residence.endswith(", NO"):
             return "Norway"
+
         elif residence.endswith(", US") or residence.endswith(", USA"):
             return "U.S.A."
+
         else:
             return "Netherlands"
 
@@ -537,7 +550,10 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
         uren_per_persoon["Residence"].apply(bepaal_land)
     )
 
-    # Grade schoonmaken voor koppeling
+    # --------------------------------------------------
+    # GRADE SCHOONMAKEN
+    # --------------------------------------------------
+
     uren_per_persoon["grade_match"] = (
         uren_per_persoon["Grade"]
         .astype("string")
@@ -546,7 +562,11 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
         .str.lower()
     )
 
-    tarieven.columns = tarieven.columns.astype(str).str.strip()
+    tarieven.columns = (
+        tarieven.columns
+        .astype(str)
+        .str.strip()
+    )
 
     tarieven["grade_match"] = (
         tarieven["Grade"]
@@ -557,7 +577,12 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
     )
 
     # Tarieven numeriek maken
-    landen = ["Netherlands", "Belgium", "U.S.A.", "Norway"]
+    landen = [
+        "Netherlands",
+        "Belgium",
+        "U.S.A.",
+        "Norway"
+    ]
 
     for land in landen:
         if land in tarieven.columns:
@@ -566,45 +591,109 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
                 errors="coerce"
             )
 
-    # Uurtarief per werknemer bepalen
-    def zoek_uurtarief(rij):
-        if pd.isna(rij["Full Name"]):
-            return pd.Series([pd.NA, pd.NA, "Werknemer niet gevonden"])
+    # --------------------------------------------------
+    # CONTRACTFACTOR
+    # --------------------------------------------------
 
-        if pd.isna(rij["Grade"]) or str(rij["Grade"]).strip() == "":
-            salaris = pd.to_numeric(rij["Annual Salary"], errors="coerce")
-            contract = contract_factor(rij["Contract"])
-
-        if pd.isna(salaris):
-            return pd.Series([pd.NA, pd.NA, "Annual Salary ontbreekt"])
-
+    def contract_factor(contract):
         if pd.isna(contract):
+            return pd.NA
+
+        contract = (
+            str(contract)
+            .upper()
+            .replace("FTE", "")
+            .strip()
+        )
+
+        try:
+            return float(contract)
+        except:
+            return pd.NA
+
+    # --------------------------------------------------
+    # UURTARIEF BEPALEN
+    # --------------------------------------------------
+
+    def zoek_uurtarief(rij):
+
+        # Werknemer helemaal niet gevonden
+        if pd.isna(rij["Full Name"]):
             return pd.Series([
                 pd.NA,
                 pd.NA,
-                "Contract ontbreekt of is niet herkenbaar"])
-
-        jaar_kosten = salaris * contract
-        dag_kosten = jaar_kosten / 260
-        uur_kosten = dag_kosten / 8
-
-        valuta = {
-            "Netherlands": "EUR",
-            "Belgium": "EUR",
-            "U.S.A.": "USD",
-            "Norway": "NOK",
-            "UK": "GBP"
-        }.get(rij["Gekozen land"])
-
-        return pd.Series([
-            round(uur_kosten, 2),
-            valuta,
-            "OK - berekend uit Annual Salary"])
+                pd.NA,
+                "Werknemer niet gevonden"
+            ])
 
         land = rij["Gekozen land"]
 
+        if pd.isna(land):
+            return pd.Series([
+                pd.NA,
+                pd.NA,
+                pd.NA,
+                "Residence ontbreekt"
+            ])
+
+        # ----------------------------------------------
+        # GEEN GRADE -> SALARIS GEBRUIKEN
+        # ----------------------------------------------
+
+        if pd.isna(rij["Grade"]) or str(rij["Grade"]).strip() == "":
+
+            salaris = pd.to_numeric(
+                rij["Annual Salary"],
+                errors="coerce"
+            )
+
+            contract = contract_factor(
+                rij["Contract"]
+            )
+
+            if pd.isna(salaris):
+                return pd.Series([
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    "Annual Salary ontbreekt"
+                ])
+
+            if pd.isna(contract):
+                return pd.Series([
+                    pd.NA,
+                    pd.NA,
+                    pd.NA,
+                    "Contract ontbreekt of is niet herkenbaar"
+                ])
+
+            # Salaris omrekenen naar uurtarief
+            jaar_kosten = salaris * contract
+            dag_kosten = jaar_kosten / 260
+            uur_kosten = dag_kosten / 8
+
+            valuta = {
+                "Netherlands": "EUR",
+                "Belgium": "EUR",
+                "U.S.A.": "USD",
+                "Norway": "NOK",
+                "UK": "GBP"
+            }.get(land)
+
+            return pd.Series([
+                round(uur_kosten, 2),
+                valuta,
+                "Annual Salary + Contract",
+                "OK"
+            ])
+
+        # ----------------------------------------------
+        # WEL GRADE -> TARIEVENTABEL GEBRUIKEN
+        # ----------------------------------------------
+
         if land not in tarieven.columns:
             return pd.Series([
+                pd.NA,
                 pd.NA,
                 pd.NA,
                 f"Geen tariefkolom voor {land}"
@@ -618,6 +707,7 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
             return pd.Series([
                 pd.NA,
                 pd.NA,
+                pd.NA,
                 "Grade niet gevonden in tarieventabel"
             ])
 
@@ -625,6 +715,7 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
 
         if pd.isna(tarief):
             return pd.Series([
+                pd.NA,
                 pd.NA,
                 pd.NA,
                 f"Geen tarief voor {rij['Grade']} in {land}"
@@ -640,62 +731,205 @@ def bereken_projectkosten(projecturen, employees, uurtarieven):
         return pd.Series([
             tarief,
             valuta,
+            "Grade + land",
             "OK"
         ])
 
+    # Uurtarief bepalen
     uren_per_persoon[
-        ["Uurtarief", "Valuta", "Controle"]
+        [
+            "Uurtarief",
+            "Valuta",
+            "Tariefbron",
+            "Controle"
+        ]
     ] = uren_per_persoon.apply(
         zoek_uurtarief,
         axis=1
     )
 
-    return uren_per_persoon
+    # --------------------------------------------------
+    # KOSTEN PER PERSOON PER WEEK
+    # --------------------------------------------------
 
-def inlezen_uurtarieven(titel, uitleg, key):
-    st.subheader(titel)
-    st.write(uitleg)
-
-    bestand = st.file_uploader(
-        f"Upload bestand voor {titel}",
-        type=["xlsx"],
-        key=key
+    uren_per_persoon["Kosten"] = (
+        uren_per_persoon["Hours"]
+        * pd.to_numeric(
+            uren_per_persoon["Uurtarief"],
+            errors="coerce"
+        )
     )
 
-    if bestand is not None:
-        try:
-            data = pd.read_excel(
-                bestand,
-                sheet_name="Rates",
-                skiprows=1,   # rij 1 overslaan
-                header=0,     # rij 2 wordt de header
-                usecols="A:E"
-            )
+    uren_per_persoon["Kosten"] = (
+        uren_per_persoon["Kosten"].round(2)
+    )
 
-            # Onderste rij met valuta verwijderen
-            data = data.dropna(subset=["Grade"]).copy()
+    return uren_per_persoon
 
-            # '-' betekent geen tarief
-            for land in ["Netherlands", "Belgium", "U.S.A.", "Norway"]:
-                data[land] = pd.to_numeric(
-                    data[land].replace("-", pd.NA),
-                    errors="coerce"
-                )
+def kosten_per_project_week(kosten_data):
+    overzicht = (
+        kosten_data
+        .dropna(subset=["Kosten", "Valuta"])
+        .groupby(
+            ["Project", "Week", "Valuta"],
+            as_index=False
+        )
+        .agg(
+            Uren=("Hours", "sum"),
+            Kosten=("Kosten", "sum")
+        )
+    )
 
-            data = data.reset_index(drop=True)
+    overzicht["Kosten"] = overzicht["Kosten"].round(2)
 
-            st.success("Uurtarieven succesvol ingelezen.")
-            st.dataframe(data, hide_index=True)
+    return overzicht
 
-            return data
+def kosten_naar_euro(
+    kosten_data,
+    usd_naar_eur,
+    nok_naar_eur,
+    gbp_naar_eur
+):
+    data = kosten_data.copy()
 
-        except Exception as fout:
-            st.error(
-                f"Bestand '{bestand.name}' kon niet worden ingelezen: {fout}"
-            )
+    wisselkoersen = {
+        "EUR": 1.0,
+        "USD": usd_naar_eur,
+        "NOK": nok_naar_eur,
+        "GBP": gbp_naar_eur
+    }
 
-    return None
+    data["Wisselkoers naar EUR"] = (
+        data["Valuta"].map(wisselkoersen)
+    )
 
+    data["Kosten_EUR"] = (
+        data["Kosten"]
+        * data["Wisselkoers naar EUR"]
+    ).round(2)
 
+    return data
+
+def vergelijk_kosten_met_budget(project_week_euro, project_budget):
+    kosten = project_week_euro.copy()
+    budgetten = project_budget.copy()
+
+    # Projectnamen opschonen voor koppeling
+    kosten["project_match"] = (
+        kosten["Project"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+
+    budgetten["project_match"] = (
+        budgetten["Project"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+
+    # Totale kosten per project
+    kosten_per_project = (
+        kosten
+        .groupby(
+            ["Project", "project_match"],
+            as_index=False
+        )
+        .agg(
+            Totale_kosten_EUR=("Kosten_EUR", "sum")
+        )
+    )
+
+    # Budgetkolommen numeriek maken
+    budgetten["Budget_NL€"] = pd.to_numeric(
+        budgetten["Budget_NL€"],
+        errors="coerce"
+    )
+
+    budgetten["Budget_BE€"] = pd.to_numeric(
+        budgetten["Budget_BE€"],
+        errors="coerce"
+    )
+
+    # NL-budget gebruiken, anders BE-budget
+    budgetten["Budget"] = (
+        budgetten["Budget_NL€"]
+        .fillna(budgetten["Budget_BE€"])
+    )
+
+    budget_info = (
+        budgetten[
+            [
+                "project_match",
+                "Budget"
+            ]
+        ]
+        .drop_duplicates("project_match")
+    )
+
+    overzicht = kosten_per_project.merge(
+        budget_info,
+        on="project_match",
+        how="left"
+    )
+
+    # Resterend budget
+    overzicht["Resterend_budget"] = (
+        overzicht["Budget"]
+        - overzicht["Totale_kosten_EUR"]
+    )
+
+    # Percentage budget gebruikt
+    overzicht["Budget_gebruikt_%"] = (
+        overzicht["Totale_kosten_EUR"]
+        / overzicht["Budget"]
+        * 100
+    )
+
+    overzicht["Budget_gebruikt_%"] = (
+        overzicht["Budget_gebruikt_%"]
+        .round(1)
+    )
+
+    # Status bepalen
+    def bepaal_status(rij):
+        if pd.isna(rij["Budget"]):
+            return "Budget ontbreekt"
+
+        if rij["Budget"] == 0:
+            return "Budget niet vastgesteld"
+
+        if rij["Totale_kosten_EUR"] > rij["Budget"]:
+            return "Budget overschreden"
+
+        if rij["Budget_gebruikt_%"] >= 90:
+            return "Bijna budget bereikt"
+
+        return "OK"
+
+    overzicht["Status"] = overzicht.apply(
+        bepaal_status,
+        axis=1
+    )
+
+    overzicht["Totale_kosten_EUR"] = (
+        overzicht["Totale_kosten_EUR"].round(2)
+    )
+
+    overzicht["Resterend_budget"] = (
+        overzicht["Resterend_budget"].round(2)
+    )
+
+    return overzicht[
+        [
+            "Project",
+            "Budget",
+            "Totale_kosten_EUR",
+            "Resterend_budget",
+            "Budget_gebruikt_%",
+            "Status"
+        ]
+    ]
 
 
