@@ -1,7 +1,8 @@
 import streamlit as st
 from Functies import (
     bestanden_inlezen,
-    inlezen_employee_bestanden, inlezen_uurtarieven
+    inlezen_employee_bestanden, 
+    inlezen_uurtarieven
 )
 
 st.title("Data inlezen")

@@ -70,7 +70,6 @@ def bestanden_inlezen(titel, uitleg, key):
 
     return None
 
-
 def inlezen_employee_bestanden(titel, uitleg, key):
     st.subheader(titel)
     st.write(uitleg)
@@ -161,7 +160,6 @@ def inlezen_employee_bestanden(titel, uitleg, key):
 
     return None
 
-
 def controle_data(data, naam):
 
     if data is None:
@@ -211,7 +209,6 @@ def controle_data(data, naam):
 
         # Opslaan 
         st.session_state[f"{naam}_schoon"] = data_schoon
-
 
 def overzicht_projecten(projecturen):
     projecturen = projecturen.copy()
@@ -337,7 +334,6 @@ def overzicht_projecten(projecturen):
                 if st.button("🔍 Vergroot", key=f"vergroot_{project}"):
                     st.session_state["groot_project"] = project
                     st.rerun()
-
 
 def missende_waarden(data):
 
@@ -932,4 +928,58 @@ def vergelijk_kosten_met_budget(project_week_euro, project_budget):
         ]
     ]
 
+def inlezen_uurtarieven(titel, uitleg, key):
+    st.subheader(titel)
+    st.write(uitleg)
 
+    bestand = st.file_uploader(
+        f"Upload bestand voor {titel}",
+        type=["xlsx"],
+        key=key
+    )
+
+    if bestand is not None:
+        try:
+            data = pd.read_excel(
+                bestand,
+                sheet_name="Rates",
+                skiprows=1,
+                header=0,
+                usecols="A:E"
+            )
+
+            # Rij onderaan met valuta verwijderen
+            data = data.dropna(subset=["Grade"]).copy()
+
+            # '-' omzetten naar lege waarde
+            for land in [
+                "Netherlands",
+                "Belgium",
+                "U.S.A.",
+                "Norway"
+            ]:
+                data[land] = pd.to_numeric(
+                    data[land].replace("-", pd.NA),
+                    errors="coerce"
+                )
+
+            data = data.reset_index(drop=True)
+
+            st.success(
+                "Uurtarieven succesvol ingelezen."
+            )
+
+            st.dataframe(
+                data,
+                hide_index=True,
+                use_container_width=True
+            )
+
+            return data
+
+        except Exception as fout:
+            st.error(
+                f"Bestand '{bestand.name}' kon niet worden ingelezen: {fout}"
+            )
+
+    return None
