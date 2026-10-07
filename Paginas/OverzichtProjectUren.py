@@ -12,7 +12,6 @@ if "projecturen_schoon" not in st.session_state:
     st.info("Controleer eerst de projecturendata bij Datacontrole.")
     st.stop()
 
-
 projecturen = st.session_state["projecturen_schoon"].copy()
 
 
@@ -26,22 +25,28 @@ projecturen["Hours"] = pd.to_numeric(
 ).fillna(0)
 
 projecturen["Week"] = pd.to_numeric(
-    projecturen["Week"].astype(str).str.extract(r"(\d+)")[0],
+    projecturen["Week"]
+    .astype(str)
+    .str.extract(r"(\d+)")[0],
     errors="coerce"
 )
 
-projecturen = projecturen.dropna(subset=["Week"])
+projecturen = projecturen.dropna(
+    subset=["Week"]
+)
 
-projecturen["Week"] = projecturen["Week"].astype(int)
-
+projecturen["Week"] = (
+    projecturen["Week"].astype(int)
+)
 
 uren_per_week = (
     projecturen
-    .groupby(["Project", "Week"])["Hours"]
+    .groupby(
+        ["Project", "Week"]
+    )["Hours"]
     .sum()
     .reset_index()
 )
-
 
 weken = range(
     1,
@@ -110,39 +115,66 @@ if project_budget is not None:
 
 
 # --------------------------------------------------
-# BEREKENDE KOSTEN
+# KOSTEN PER PROJECT PER WEEK
 # --------------------------------------------------
 
-budget_overzicht = st.session_state.get(
-    "budget_overzicht"
+project_week_euro = st.session_state.get(
+    "project_week_euro"
 )
 
-kosten_info = {}
+if project_week_euro is not None:
 
-if budget_overzicht is not None:
+    project_week_euro = (
+        project_week_euro.copy()
+    )
 
-    budget_overzicht = budget_overzicht.copy()
+    project_week_euro["Week"] = (
+        pd.to_numeric(
+            project_week_euro["Week"],
+            errors="coerce"
+        )
+    )
 
-    budget_overzicht["project_match"] = (
-        budget_overzicht["Project"]
+    project_week_euro = (
+        project_week_euro.dropna(
+            subset=["Week"]
+        )
+    )
+
+    project_week_euro["Week"] = (
+        project_week_euro["Week"]
+        .astype(int)
+    )
+
+    project_week_euro["project_match"] = (
+        project_week_euro["Project"]
         .astype(str)
         .str.strip()
         .str.lower()
     )
 
-    kosten_info = (
-        budget_overzicht
-        .drop_duplicates("project_match")
-        .set_index("project_match")
-        .to_dict("index")
+
+# --------------------------------------------------
+# TOTALE KOSTEN PER PROJECT
+# --------------------------------------------------
+
+totale_kosten = {}
+
+if project_week_euro is not None:
+
+    totale_kosten = (
+        project_week_euro
+        .groupby("project_match")["Kosten_EUR"]
+        .sum()
+        .to_dict()
     )
 
 
 # --------------------------------------------------
-# OVERZICHT MAKEN
+# PROJECTURENOVERZICHT
 # --------------------------------------------------
 
-def maak_overzicht(status=False, met_budget=False):
+def maak_uren_overzicht():
 
     rijen = []
 
@@ -152,22 +184,6 @@ def maak_overzicht(status=False, met_budget=False):
             uren_per_week["Project"] == project
         ]
 
-        actief = data[
-            data["Hours"] > 0
-        ]
-
-        start = (
-            int(actief["Week"].min())
-            if not actief.empty
-            else None
-        )
-
-        laatste = (
-            int(actief["Week"].max())
-            if not actief.empty
-            else None
-        )
-
         uren = dict(
             zip(
                 data["Week"],
@@ -175,102 +191,225 @@ def maak_overzicht(status=False, met_budget=False):
             )
         )
 
+        rij = {
+            "Project": project
+        }
+
+        for week in weken:
+
+            uur = uren.get(
+                week,
+                0
+            )
+
+            rij[str(week)] = (
+                "0"
+                if uur == 0
+                else f"{uur:.0f}"
+            )
+
+        rijen.append(rij)
+
+    return pd.DataFrame(rijen)
+
+
+# --------------------------------------------------
+# BUDGETOVERZICHT
+# --------------------------------------------------
+
+def maak_budget_overzicht(
+    alleen_met_budget=True,
+    extra_kolommen=None,
+    alleen_waarschuwingen=False
+):
+
+    if extra_kolommen is None:
+        extra_kolommen = []
+
+    rijen = []
+
+    for project in projecten:
+
         project_match = (
             str(project)
             .strip()
             .lower()
         )
 
+        budget = budgetten.get(
+            project_match,
+            pd.NA
+        )
+
+        heeft_budget = (
+            pd.notna(budget)
+            and budget > 0
+        )
+
+        # Juiste tabel kiezen
+        if (
+            alleen_met_budget
+            and not heeft_budget
+        ):
+            continue
+
+        if (
+            not alleen_met_budget
+            and heeft_budget
+        ):
+            continue
+
+        kosten = totale_kosten.get(
+            project_match,
+            pd.NA
+        )
+
+        # Totale percentage berekenen
+        if (
+            heeft_budget
+            and pd.notna(kosten)
+        ):
+            percentage_totaal = (
+                kosten / budget * 100
+            )
+        else:
+            percentage_totaal = pd.NA
+
+        # Alleen geel/rode projecten tonen
+        if alleen_waarschuwingen:
+
+            if (
+                pd.isna(percentage_totaal)
+                or percentage_totaal < 90
+            ):
+                continue
+
         rij = {
             "Project": project
         }
 
+        # ----------------------------------------------
+        # OPTIONELE KOLOMMEN
+        # ----------------------------------------------
+
+        if "Budget" in extra_kolommen:
+            rij["Budget"] = (
+                budget
+                if heeft_budget
+                else pd.NA
+            )
+
+        if "Kosten" in extra_kolommen:
+            rij["Kosten"] = kosten
+
+        if "Resterend" in extra_kolommen:
+
+            if (
+                heeft_budget
+                and pd.notna(kosten)
+            ):
+                rij["Resterend"] = (
+                    budget - kosten
+                )
+            else:
+                rij["Resterend"] = pd.NA
+
+        if "Percentage" in extra_kolommen:
+            rij["Percentage"] = percentage_totaal
+
 
         # ----------------------------------------------
-        # BUDGET EN KOSTEN
+        # UREN PER WEEK
         # ----------------------------------------------
 
-        if met_budget:
+        uren_project = uren_per_week[
+            uren_per_week["Project"] == project
+        ]
 
-            rij["Budget"] = budgetten.get(
-                project_match,
-                pd.NA
+        uren_dict = dict(
+            zip(
+                uren_project["Week"],
+                uren_project["Hours"]
             )
-
-            info = kosten_info.get(
-                project_match,
-                {}
-            )
-
-            rij["Kosten"] = info.get(
-                "Totale_kosten_EUR",
-                pd.NA
-            )
-
-            rij["Resterend"] = info.get(
-                "Resterend_budget",
-                pd.NA
-            )
-
-            rij["Gebruikt %"] = info.get(
-                "Budget_gebruikt_%",
-                pd.NA
-            )
-
-            rij["Status"] = info.get(
-                "Status",
-                "Nog niet berekend"
-            )
-
-
-        rij["Start"] = (
-            start
-            if start is not None
-            else "-"
-        )
-
-        rij["Laatste"] = (
-            laatste
-            if laatste is not None
-            else "-"
         )
 
 
         # ----------------------------------------------
-        # WEEKSTATUS
+        # KOSTEN PER WEEK
         # ----------------------------------------------
+
+        kosten_per_week = {}
+
+        if project_week_euro is not None:
+
+            project_kosten = (
+                project_week_euro[
+                    project_week_euro[
+                        "project_match"
+                    ] == project_match
+                ]
+            )
+
+            kosten_per_week = dict(
+                zip(
+                    project_kosten["Week"],
+                    project_kosten["Kosten_EUR"]
+                )
+            )
+
+
+        # ----------------------------------------------
+        # WEEKVAKJES
+        # ----------------------------------------------
+
+        cumulatieve_kosten = 0.0
 
         for week in weken:
 
-            if (
-                start is None
-                or week < start
-                or week > laatste
-            ):
-                waarde = "NA"
+            uur = uren_dict.get(
+                week,
+                0
+            )
 
-            else:
+            # Project MET budget
+            if heeft_budget:
 
-                uur = uren.get(
+                week_kosten = kosten_per_week.get(
                     week,
                     0
                 )
 
-                if status:
-
-                    waarde = (
-                        "ACTIEF"
-                        if uur > 0
-                        else "0"
+                if pd.notna(week_kosten):
+                    cumulatieve_kosten += float(
+                        week_kosten
                     )
+
+                if (
+                    uur == 0
+                    and cumulatieve_kosten == 0
+                ):
+                    waarde = "-"
 
                 else:
 
-                    waarde = (
-                        "0"
-                        if uur == 0
-                        else f"{uur:.0f}"
+                    percentage = (
+                        cumulatieve_kosten
+                        / budget
+                        * 100
                     )
+
+                    waarde = (
+                        f"{percentage:.1f}%"
+                    )
+
+            # Project ZONDER budget
+            else:
+
+                waarde = (
+                    "ACTIEF"
+                    if uur > 0
+                    else "-"
+                )
 
             rij[str(week)] = waarde
 
@@ -280,16 +419,10 @@ def maak_overzicht(status=False, met_budget=False):
 
 
 # --------------------------------------------------
-# KLEUREN UREN
+# KLEUREN PROJECTUREN
 # --------------------------------------------------
 
 def kleur_uren(waarde):
-
-    if waarde == "NA":
-        return (
-            "background-color:#e5e5e5;"
-            "color:#e5e5e5"
-        )
 
     uren = float(waarde)
 
@@ -297,123 +430,143 @@ def kleur_uren(waarde):
         return (
             "background-color:white;"
             "color:#666;"
-            "font-weight:bold"
         )
 
     if uren <= 30:
         return (
             "background-color:#eaf4ff;"
-            "color:#24435c"
+            "color:#24435c;"
         )
 
     if uren <= 50:
         return (
             "background-color:#c9e3fa;"
-            "color:#183b56"
+            "color:#183b56;"
         )
 
     if uren <= 70:
         return (
             "background-color:#91c4ed;"
-            "color:#123653"
+            "color:#123653;"
         )
 
     if uren <= 90:
         return (
             "background-color:#559bd0;"
-            "color:white"
+            "color:white;"
         )
 
     return (
         "background-color:#21689d;"
         "color:white;"
-        "font-weight:bold"
     )
 
 
 # --------------------------------------------------
-# KLEUREN WEEKSTATUS
+# KLEUREN BUDGETPERCENTAGE PER WEEK
 # --------------------------------------------------
 
-def kleur_status_week(waarde):
+def kleur_budgetpercentage(waarde):
 
-    if waarde == "ACTIEF":
-        return (
-            "background-color:#c9e3fa;"
-            "color:#c9e3fa"
-        )
+    waarde = str(waarde)
 
-    if waarde == "0":
+    if waarde == "-":
+
         return (
             "background-color:white;"
-            "color:white"
+            "color:#aaa;"
+            "font-weight:normal;"
+        )
+
+    try:
+        percentage = float(
+            waarde.replace("%", "")
+        )
+
+    except:
+        return ""
+
+    # Onder 90% -> één vaste kleur blauw
+    if percentage < 90:
+
+        return (
+            "background-color:#c9e3fa;"
+            "color:#183b56;"
+            "font-weight:normal;"
+        )
+
+    # 90 t/m 100 -> geel
+    if percentage <= 100:
+
+        return (
+            "background-color:#fff1a8;"
+            "color:#725600;"
+            "font-weight:normal;"
+        )
+
+    # Boven 100 -> rood
+    return (
+        "background-color:#ffd6d6;"
+        "color:#a40000;"
+        "font-weight:normal;"
+    )
+
+
+# --------------------------------------------------
+# KLEUR TOTALE PERCENTAGEKOLOM
+# --------------------------------------------------
+
+def kleur_percentage_kolom(waarde):
+
+    if pd.isna(waarde):
+        return ""
+
+    percentage = float(waarde)
+
+    if percentage < 90:
+
+        return (
+            "background-color:#c9e3fa;"
+            "color:#183b56;"
+            "font-weight:normal;"
+        )
+
+    if percentage <= 100:
+
+        return (
+            "background-color:#fff1a8;"
+            "color:#725600;"
+            "font-weight:normal;"
         )
 
     return (
-        "background-color:#e5e5e5;"
-        "color:#e5e5e5"
+        "background-color:#ffd6d6;"
+        "color:#a40000;"
+        "font-weight:normal;"
     )
 
 
 # --------------------------------------------------
-# KLEUREN BUDGET
+# PROJECT ZONDER BUDGET
 # --------------------------------------------------
 
-def kleur_budget(waarde):
+def kleur_zonder_budget(waarde):
 
-    if (
-        pd.notna(waarde)
-        and waarde == 0
-    ):
+    if waarde == "ACTIEF":
+
         return (
-            "background-color:#ffd6d6;"
-            "color:#a40000;"
-            "font-weight:bold"
+            "background-color:#c9e3fa;"
+            "color:#c9e3fa;"
         )
 
-    return ""
-
-
-# --------------------------------------------------
-# KLEUREN STATUS
-# --------------------------------------------------
-
-def kleur_projectstatus(waarde):
-
-    if waarde == "Budget overschreden":
-        return (
-            "background-color:#ffd6d6;"
-            "color:#a40000;"
-            "font-weight:bold"
-        )
-
-    if waarde == "Bijna budget bereikt":
-        return (
-            "background-color:#fff1c2;"
-            "font-weight:bold"
-        )
-
-    if waarde in [
-        "Budget ontbreekt",
-        "Budget niet vastgesteld",
-        "Nog niet berekend"
-    ]:
-        return (
-            "background-color:#eeeeee;"
-            "color:#666"
-        )
-
-    if waarde == "OK":
-        return (
-            "background-color:#dff2df;"
-            "color:#245b24"
-        )
-
-    return ""
+    return (
+        "background-color:white;"
+        "color:white;"
+    )
 
 
 # --------------------------------------------------
-# FORMAT GELDBEDRAGEN
+# FORMATTING
 # --------------------------------------------------
 
 def geld_format(waarde):
@@ -442,11 +595,13 @@ def percentage_format(waarde):
 def selectie_ophalen(key):
 
     try:
+
         return st.session_state[
             key
         ]["selection"]["rows"]
 
     except:
+
         return []
 
 
@@ -458,8 +613,17 @@ def toon_tabel(
     overzicht,
     key,
     soort="uren",
-    budget=False
+    zonder_budget=False,
+    volledige_hoogte=False
 ):
+
+    if overzicht.empty:
+
+        st.info(
+            "Geen projecten in deze categorie."
+        )
+        return
+
 
     filter_key = f"{key}_filter"
 
@@ -471,7 +635,6 @@ def toon_tabel(
     )
 
 
-    # Alleen geselecteerde projecten
     if filter_projecten:
 
         weergave = overzicht[
@@ -516,37 +679,68 @@ def toon_tabel(
             )
         )
 
+
+    elif zonder_budget:
+
+        stijl = (
+            weergave.style
+            .map(
+                kleur_zonder_budget,
+                subset=week_kolommen
+            )
+        )
+
+
     else:
 
         stijl = (
             weergave.style
             .map(
-                kleur_status_week,
+                kleur_budgetpercentage,
                 subset=week_kolommen
-            )
-            .map(
-                kleur_budget,
-                subset=["Budget"]
-            )
-            .map(
-                kleur_projectstatus,
-                subset=["Status"]
-            )
-            .format(
-                {
-                    "Budget": geld_format,
-                    "Kosten": geld_format,
-                    "Resterend": geld_format,
-                    "Gebruikt %": percentage_format
-                }
             )
         )
 
 
+    # Percentagekolom ook kleuren
+    if "Percentage" in weergave.columns:
+
+        stijl = stijl.map(
+            kleur_percentage_kolom,
+            subset=["Percentage"]
+        )
+
+
+    # Geld/percentage formatteren
+    format_dict = {}
+
+    for kolom in [
+        "Budget",
+        "Kosten",
+        "Resterend"
+    ]:
+
+        if kolom in weergave.columns:
+            format_dict[kolom] = geld_format
+
+
+    if "Percentage" in weergave.columns:
+        format_dict["Percentage"] = percentage_format
+
+
+    if format_dict:
+
+        stijl = stijl.format(
+            format_dict
+        )
+
+
+    # Weekpercentages klein
     stijl = stijl.set_properties(
         subset=week_kolommen,
         **{
-            "font-size": "9px",
+            "font-size": "8px",
+            "font-weight": "normal",
             "text-align": "center",
             "padding": "1px"
         }
@@ -554,18 +748,25 @@ def toon_tabel(
 
 
     # ----------------------------------------------
-    # GESELECTEERDE RIJ MARKEREN
+    # GESELECTEERDE RIJ
     # ----------------------------------------------
 
     def markeer_rij(rij):
 
         if rij.name not in geselecteerde_rijen:
-            return [""] * len(rij)
+
+            return [
+                ""
+            ] * len(rij)
+
 
         opmaak = [
+
             "border-top:2px solid #2878b5;"
             "border-bottom:2px solid #2878b5;"
+
         ] * len(rij)
+
 
         opmaak[0] += (
             "border-left:2px solid #2878b5;"
@@ -593,24 +794,12 @@ def toon_tabel(
         "Project":
             st.column_config.TextColumn(
                 "Project",
-                width=120
-            ),
-
-        "Start":
-            st.column_config.TextColumn(
-                "Start",
-                width=50
-            ),
-
-        "Laatste":
-            st.column_config.TextColumn(
-                "Laatste",
-                width=55
+                width=130
             )
     }
 
 
-    if budget:
+    if "Budget" in weergave.columns:
 
         config["Budget"] = (
             st.column_config.Column(
@@ -619,6 +808,9 @@ def toon_tabel(
             )
         )
 
+
+    if "Kosten" in weergave.columns:
+
         config["Kosten"] = (
             st.column_config.Column(
                 "Kosten",
@@ -626,24 +818,23 @@ def toon_tabel(
             )
         )
 
+
+    if "Resterend" in weergave.columns:
+
         config["Resterend"] = (
             st.column_config.Column(
                 "Resterend",
-                width=95
+                width=90
             )
         )
 
-        config["Gebruikt %"] = (
+
+    if "Percentage" in weergave.columns:
+
+        config["Percentage"] = (
             st.column_config.Column(
-                "Gebruikt %",
-                width=80
-            )
-        )
-
-        config["Status"] = (
-            st.column_config.TextColumn(
-                "Status",
-                width=150
+                "Percentage",
+                width=85
             )
         )
 
@@ -653,12 +844,27 @@ def toon_tabel(
         config[week] = (
             st.column_config.TextColumn(
                 week,
-                width=33
+                width=45
             )
         )
 
 
-    # Container boven tabel
+    # ----------------------------------------------
+    # HOOGTE TABEL
+    # ----------------------------------------------
+
+    if volledige_hoogte:
+
+        tabel_hoogte = (
+            38
+            + len(weergave) * 29
+        )
+
+    else:
+
+        tabel_hoogte = 450
+
+
     acties = st.container()
 
 
@@ -667,7 +873,7 @@ def toon_tabel(
         column_config=config,
         hide_index=True,
         use_container_width=True,
-        height=600,
+        height=tabel_hoogte,
         row_height=28,
         on_select="rerun",
         selection_mode="multi-row",
@@ -683,7 +889,9 @@ def toon_tabel(
     gekozen_projecten = (
 
         weergave
-        .iloc[gekozen_rijen]["Project"]
+        .iloc[
+            gekozen_rijen
+        ]["Project"]
         .tolist()
 
         if gekozen_rijen
@@ -733,6 +941,7 @@ def toon_tabel(
                 )
             )
 
+
             with col1:
 
                 project_keuze = (
@@ -744,6 +953,7 @@ def toon_tabel(
                         )
                     )
                 )
+
 
             with col2:
 
@@ -763,16 +973,15 @@ def toon_tabel(
                         "Paginas/OverzichtProjectBezetting.py"
                     )
 
+
             with col3:
 
                 st.write("")
                 st.write("")
 
-                if (
-                    len(
-                        gekozen_projecten
-                    ) > 1
-                ):
+                if len(
+                    gekozen_projecten
+                ) > 1:
 
                     if st.button(
                         "Vergelijk selectie",
@@ -804,16 +1013,16 @@ tab_uren, tab_budget = st.tabs([
 
 with tab_uren:
 
-    overzicht = maak_overzicht()
+    overzicht_uren = (
+        maak_uren_overzicht()
+    )
 
     st.caption(
-        "Per project zie je het aantal geboekte uren per week. "
-        "Wit betekent 0 uur; hoe donkerder blauw, hoe meer uren zijn geboekt. "
-        "Selecteer één of meerdere projecten om ze te bekijken of te vergelijken."
+        "Per project zie je het aantal geboekte uren per week."
     )
 
     toon_tabel(
-        overzicht,
+        overzicht_uren,
         "tabel_projecturen",
         soort="uren"
     )
@@ -825,28 +1034,174 @@ with tab_uren:
 
 with tab_budget:
 
-    if budget_overzicht is None:
+    if project_week_euro is None:
 
         st.info(
             "Ga eerst naar Datacontrole → Koppeling werknemers "
             "om de projectkosten te berekenen."
         )
 
-    overzicht = maak_overzicht(
-        status=True,
-        met_budget=True
+
+    # --------------------------------------------------
+    # OPTIONELE KOLOMMEN
+    # --------------------------------------------------
+
+    gekozen_kolommen = st.multiselect(
+        "Extra kolommen tonen",
+        [
+            "Budget",
+            "Kosten",
+            "Resterend",
+            "Percentage"
+        ],
+        default=st.session_state.get(
+            "budget_extra_kolommen",
+            []
+        ),
+        key="budget_kolommen_keuze"
+    )
+
+
+    if st.button(
+        "Kolommen toepassen",
+        key="budget_kolommen_knop"
+    ):
+
+        st.session_state[
+            "budget_extra_kolommen"
+        ] = gekozen_kolommen
+
+        st.rerun()
+
+
+    extra_kolommen = (
+        st.session_state.get(
+            "budget_extra_kolommen",
+            []
+        )
+    )
+
+
+    st.divider()
+
+
+    # --------------------------------------------------
+    # PROJECTEN MET BUDGET
+    # --------------------------------------------------
+
+    st.subheader(
+        "Projecten met vastgesteld budget"
+    )
+
+
+    if "budget_waarschuwingen" not in st.session_state:
+
+        st.session_state[
+            "budget_waarschuwingen"
+        ] = False
+
+
+    col1, col2 = st.columns(
+        [1, 4]
+    )
+
+
+    with col1:
+
+        if not st.session_state[
+            "budget_waarschuwingen"
+        ]:
+
+            if st.button(
+                "Toon alleen geel/rood"
+            ):
+
+                st.session_state[
+                    "budget_waarschuwingen"
+                ] = True
+
+                st.rerun()
+
+        else:
+
+            if st.button(
+                "Toon alle projecten"
+            ):
+
+                st.session_state[
+                    "budget_waarschuwingen"
+                ] = False
+
+                st.rerun()
+
+
+    with col2:
+
+        if st.session_state[
+            "budget_waarschuwingen"
+        ]:
+
+            st.warning(
+                "Je ziet nu alleen projecten waarbij "
+                "90% of meer van het budget is gebruikt."
+            )
+
+
+    st.caption(
+        "De percentages in de weekvakjes zijn cumulatief. "
+        "Onder 90% is blauw, 90–100% geel en boven 100% rood."
+    )
+
+
+    overzicht_met_budget = (
+        maak_budget_overzicht(
+            alleen_met_budget=True,
+            extra_kolommen=extra_kolommen,
+            alleen_waarschuwingen=(
+                st.session_state[
+                    "budget_waarschuwingen"
+                ]
+            )
+        )
+    )
+
+
+    toon_tabel(
+        overzicht_met_budget,
+        "tabel_met_budget",
+        soort="budget",
+        volledige_hoogte=True
+    )
+
+
+    st.divider()
+
+
+    # --------------------------------------------------
+    # PROJECTEN ZONDER BUDGET
+    # --------------------------------------------------
+
+    st.subheader(
+        "Projecten zonder vastgesteld budget"
     )
 
     st.caption(
-        "Hier zie je per project het budget, de berekende kosten tot nu toe, "
-        "het resterende budget en het percentage dat al is gebruikt. "
-        "Lichtblauw betekent dat in die week uren zijn geboekt. "
-        "Een rood statusveld betekent dat het budget is overschreden."
+        "Deze projecten hebben geen budget of een budget van €0. "
+        "Een blauw vakje betekent dat in die week uren zijn geboekt."
     )
 
+
+    overzicht_zonder_budget = (
+        maak_budget_overzicht(
+            alleen_met_budget=False,
+            extra_kolommen=extra_kolommen
+        )
+    )
+
+
     toon_tabel(
-        overzicht,
-        "tabel_projectbudget",
+        overzicht_zonder_budget,
+        "tabel_zonder_budget",
         soort="budget",
-        budget=True
+        zonder_budget=True
     )
